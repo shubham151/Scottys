@@ -7,7 +7,22 @@
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="controllers.ProductController">
 
-    <TableView fx:id="productTable" layoutX="20" layoutY="20" prefWidth="800" prefHeight="400">
+    <!-- Filter Fields -->
+    <HBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10" AnchorPane.rightAnchor="10">
+        <TextField fx:id="filterItemNumber" promptText="Filter Item Number"/>
+        <TextField fx:id="filterClass" promptText="Filter Class"/>
+        <TextField fx:id="filterLabel" promptText="Filter Label"/>
+        <TextField fx:id="filterTaxRate1" promptText="Filter Tax Rate 1"/>
+        <TextField fx:id="filterTaxRate2" promptText="Filter Tax Rate 2"/>
+        <TextField fx:id="filterTaxRate3" promptText="Filter Tax Rate 3"/>
+        <TextField fx:id="filterTaxRate4" promptText="Filter Tax Rate 4"/>
+        <TextField fx:id="filterPrice" promptText="Filter Price"/>
+        <TextField fx:id="filterStatus" promptText="Filter Status"/>
+    </HBox>
+
+    <!-- Full-screen TableView -->
+    <TableView fx:id="productTable" AnchorPane.topAnchor="50" AnchorPane.leftAnchor="10"
+               AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="60">
         <columns>
             <TableColumn text="Item Number" fx:id="colItemNumber"/>
             <TableColumn text="Class" fx:id="colClass"/>
@@ -21,9 +36,12 @@
         </columns>
     </TableView>
 
-    <Button text="Load Data" fx:id="btnLoad" layoutX="20" layoutY="420"/>
-    <Button text="Edit Product" fx:id="btnEdit" layoutX="120" layoutY="420"/>
-    <Button text="Delete Product" fx:id="btnDelete" layoutX="220" layoutY="420"/>
-    <Button text="Import CSV" fx:id="btnImport" layoutX="320" layoutY="420"/>
+    <!-- Buttons aligned at the bottom -->
+    <HBox spacing="10" AnchorPane.bottomAnchor="10" AnchorPane.leftAnchor="10">
+        <Button text="Load Data" fx:id="btnLoad"/>
+        <Button text="Edit Product" fx:id="btnEdit"/>
+        <Button text="Delete Product" fx:id="btnDelete"/>
+        <Button text="Import CSV" fx:id="btnImport"/>
+    </HBox>
 
 </AnchorPane>

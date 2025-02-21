@@ -27,28 +27,34 @@ public class CSVImporter {
                     continue;
                 }
 
-                String[] values = line.split(",");
+                // Fix: Use regex split to handle CSV values correctly
+                String[] values = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
 
                 if (values.length < 8) {
-                    System.out.println("Skipping invalid row: " + line);
+                    System.err.println("Skipping invalid row: " + line);
                     continue;
                 }
 
-                String productClass = values[0].trim();
-                int itemNumber = Integer.parseInt(values[1].trim());
-                String label = values[2].trim();
-                String taxRate1 = values[3].trim();
-                String taxRate2 = values[4].trim();
-                String taxRate3 = values[5].trim();
-                String taxRate4 = values[6].trim();
-                double price = Double.parseDouble(values[7].replace("$", "").trim());
+                try {
+                    String productClass = values[0].trim();
+                    int itemNumber = Integer.parseInt(values[1].trim());
+                    String label = values[2].trim();
+                    String taxRate1 = values[3].trim();
+                    String taxRate2 = values[4].trim();
+                    String taxRate3 = values[5].trim();
+                    String taxRate4 = values[6].trim();
+                    double price = Double.parseDouble(values[7].replace("$", "").trim());
 
-                if (productExists(conn, itemNumber)) {
-                    updateProduct(conn, itemNumber, productClass, label, taxRate1, taxRate2, taxRate3, taxRate4, price);
-                    updatedCount++;
-                } else {
-                    insertProduct(conn, productClass, itemNumber, label, taxRate1, taxRate2, taxRate3, taxRate4, price);
-                    addedCount++;
+                    if (productExists(conn, itemNumber)) {
+                        updateProduct(conn, itemNumber, productClass, label, taxRate1, taxRate2, taxRate3, taxRate4, price);
+                        updatedCount++;
+                    } else {
+                        System.out.println("New product detected: " + itemNumber); // Debugging new products
+                        insertProduct(conn, productClass, itemNumber, label, taxRate1, taxRate2, taxRate3, taxRate4, price);
+                        addedCount++;
+                    }
+                } catch (NumberFormatException e) {
+                    System.err.println("Skipping row due to incorrect number format: " + line);
                 }
             }
 
@@ -64,7 +70,13 @@ public class CSVImporter {
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, itemNumber);
             ResultSet rs = pstmt.executeQuery();
-            return rs.next() && rs.getInt(1) > 0;
+            boolean exists = rs.next() && rs.getInt(1) > 0;
+
+            if (!exists) {
+                System.out.println("New product should be added: " + itemNumber);
+            }
+
+            return exists;
         }
     }
 

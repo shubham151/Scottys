@@ -5,13 +5,13 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
+
 import java.io.IOException;
 
 public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws IOException {
-        // Ensure the database is available
         DatabaseHelper.initializeDatabase();
         DatabaseHelper.createTable();
 
@@ -19,7 +19,12 @@ public class Main extends Application {
         AnchorPane root = loader.load();
 
         Scene scene = new Scene(root);
-        primaryStage.setTitle("Scottys - Product Manager");
+        primaryStage.setTitle("Scottys - Analytics");
+
+        // Set full screen
+//        primaryStage.setFullScreen(true);
+        primaryStage.setMaximized(true);
+
         primaryStage.setScene(scene);
         primaryStage.show();
     }

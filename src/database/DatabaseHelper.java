@@ -9,7 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class DatabaseHelper {
-    private static final String DB_FOLDER = System.getProperty("user.home") + "/Scottys/db/";
+    private static final String DB_FOLDER = System.getProperty("user.home") + "/IdeaProjects/Scottys/db/";
     private static final String DB_PATH = DB_FOLDER + "product_database.db";
     private static final String RESOURCE_DB = "/db/product_database.db"; // Must be inside resources/db/
 
