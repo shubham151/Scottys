@@ -1,47 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane xmlns="http://javafx.com/javafx/8.0"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="controllers.ProductController">
 
-    <!-- Filter Fields -->
-    <HBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10" AnchorPane.rightAnchor="10">
-        <TextField fx:id="filterItemNumber" promptText="Filter Item Number"/>
-        <TextField fx:id="filterClass" promptText="Filter Class"/>
-        <TextField fx:id="filterLabel" promptText="Filter Label"/>
-        <TextField fx:id="filterTaxRate1" promptText="Filter Tax Rate 1"/>
-        <TextField fx:id="filterTaxRate2" promptText="Filter Tax Rate 2"/>
-        <TextField fx:id="filterTaxRate3" promptText="Filter Tax Rate 3"/>
-        <TextField fx:id="filterTaxRate4" promptText="Filter Tax Rate 4"/>
-        <TextField fx:id="filterPrice" promptText="Filter Price"/>
-        <TextField fx:id="filterStatus" promptText="Filter Status"/>
-    </HBox>
+<TabPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+         fx:controller="controllers.MainController" fx:id="mainTabPane" prefWidth="Infinity" prefHeight="Infinity">
+    <tabs>
+        <Tab fx:id="productTab" text="Product">
+            <AnchorPane>
+                <fx:include source="ProductTab.fxml"/>
+            </AnchorPane>
+        </Tab>
+        <Tab fx:id="categoryTab" text="Category">
+            <AnchorPane>
+                <fx:include source="CategoryTab.fxml"/>
+            </AnchorPane>
+        </Tab>
+        <Tab fx:id="salesTab" text="Sales">
+            <AnchorPane>
+                <fx:include source="SalesTab.fxml"/>
+            </AnchorPane>
+        </Tab>
+    </tabs>
+</TabPane>
 
-    <!-- Full-screen TableView -->
-    <TableView fx:id="productTable" AnchorPane.topAnchor="50" AnchorPane.leftAnchor="10"
-               AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="60">
-        <columns>
-            <TableColumn text="Item Number" fx:id="colItemNumber"/>
-            <TableColumn text="Class" fx:id="colClass"/>
-            <TableColumn text="Label" fx:id="colLabel"/>
-            <TableColumn text="Tax Rate 1" fx:id="colTaxRate1"/>
-            <TableColumn text="Tax Rate 2" fx:id="colTaxRate2"/>
-            <TableColumn text="Tax Rate 3" fx:id="colTaxRate3"/>
-            <TableColumn text="Tax Rate 4" fx:id="colTaxRate4"/>
-            <TableColumn text="Price" fx:id="colPrice"/>
-            <TableColumn text="Status" fx:id="colStatus"/>
-        </columns>
-    </TableView>
 
-    <!-- Buttons aligned at the bottom -->
-    <HBox spacing="10" AnchorPane.bottomAnchor="10" AnchorPane.leftAnchor="10">
-        <Button text="Load Data" fx:id="btnLoad"/>
-        <Button text="Edit Product" fx:id="btnEdit"/>
-        <Button text="Delete Product" fx:id="btnDelete"/>
-        <Button text="Import CSV" fx:id="btnImport"/>
-    </HBox>
-
-</AnchorPane>

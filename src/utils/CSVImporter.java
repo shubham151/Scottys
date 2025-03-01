@@ -4,14 +4,16 @@ import database.DatabaseHelper;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
+import java.util.Set;
 
 public class CSVImporter {
 
-    public static void importCSV(String filePath) {
+    // === 1. IMPORT PRODUCT DETAILS CSV ===
+    public static void importProductsCSV(String filePath) {
         int addedCount = 0;
         int updatedCount = 0;
 
@@ -22,35 +24,34 @@ public class CSVImporter {
             boolean firstLine = true;
 
             while ((line = br.readLine()) != null) {
-                if (firstLine) { // Skip header row
+                if (firstLine) { // ✅ Skip header row
                     firstLine = false;
                     continue;
                 }
 
-                // Fix: Use regex split to handle CSV values correctly
-                String[] values = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+                String[] values = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)"); // ✅ Correctly handle CSV commas
 
-                if (values.length < 8) {
+                if (values.length < 8) { // ✅ Ensure correct column count
                     System.err.println("Skipping invalid row: " + line);
                     continue;
                 }
 
                 try {
-                    String productClass = values[0].trim();
-                    int itemNumber = Integer.parseInt(values[1].trim());
-                    String label = values[2].trim();
-                    String taxRate1 = values[3].trim();
-                    String taxRate2 = values[4].trim();
-                    String taxRate3 = values[5].trim();
-                    String taxRate4 = values[6].trim();
-                    double price = Double.parseDouble(values[7].replace("$", "").trim());
+                    String productClass = values[0].trim(); // ✅ Category Name
+                    int itemNumber = Integer.parseInt(values[1].trim()); // ✅ Item Number
+                    String label = values[2].trim(); // ✅ Product Name
+                    String taxRate1 = values[3].trim().equalsIgnoreCase("Not Assigned") ? "N/A" : values[3].trim();
+                    String taxRate2 = values[4].trim().equalsIgnoreCase("Not Assigned") ? "N/A" : values[4].trim();
+                    String taxRate3 = values[5].trim().equalsIgnoreCase("Not Assigned") ? "N/A" : values[5].trim();
+                    String taxRate4 = values[6].trim().equalsIgnoreCase("Not Assigned") ? "N/A" : values[6].trim();
+                    double price = Double.parseDouble(values[7].replace("$", "").trim()); // ✅ Remove "$"
+                    String recStatus = "Active"; // ✅ Default value
 
                     if (productExists(conn, itemNumber)) {
-                        updateProduct(conn, itemNumber, productClass, label, taxRate1, taxRate2, taxRate3, taxRate4, price);
+                        updateProduct(conn, productClass, itemNumber, label, taxRate1, taxRate2, taxRate3, taxRate4, price, recStatus);
                         updatedCount++;
                     } else {
-                        System.out.println("New product detected: " + itemNumber); // Debugging new products
-                        insertProduct(conn, productClass, itemNumber, label, taxRate1, taxRate2, taxRate3, taxRate4, price);
+                        insertProduct(conn, productClass, itemNumber, label, taxRate1, taxRate2, taxRate3, taxRate4, price, recStatus);
                         addedCount++;
                     }
                 } catch (NumberFormatException e) {
@@ -61,29 +62,26 @@ public class CSVImporter {
             System.out.println(addedCount + " products added, " + updatedCount + " products updated.");
 
         } catch (IOException | SQLException e) {
-            System.err.println("Error importing CSV: " + e.getMessage());
+            System.err.println("Error importing Products CSV: " + e.getMessage());
         }
     }
+
+
 
     private static boolean productExists(Connection conn, int itemNumber) throws SQLException {
         String query = "SELECT COUNT(*) FROM Product WHERE item_number = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, itemNumber);
             ResultSet rs = pstmt.executeQuery();
-            boolean exists = rs.next() && rs.getInt(1) > 0;
-
-            if (!exists) {
-                System.out.println("New product should be added: " + itemNumber);
-            }
-
-            return exists;
+            return rs.next() && rs.getInt(1) > 0;
         }
     }
 
-    private static void updateProduct(Connection conn, int itemNumber, String productClass, String label,
-                                      String taxRate1, String taxRate2, String taxRate3, String taxRate4, double price) throws SQLException {
+    private static void updateProduct(Connection conn, String productClass, int itemNumber, String label,
+                                      String taxRate1, String taxRate2, String taxRate3, String taxRate4,
+                                      double price, String recStatus) throws SQLException {
         String updateSQL = "UPDATE Product SET class = ?, label = ?, tax_rate_1 = ?, tax_rate_2 = ?, " +
-                "tax_rate_3 = ?, tax_rate_4 = ?, price = ? WHERE item_number = ?";
+                "tax_rate_3 = ?, tax_rate_4 = ?, price = ?, rec_status = ? WHERE item_number = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
             pstmt.setString(1, productClass);
             pstmt.setString(2, label);
@@ -92,17 +90,22 @@ public class CSVImporter {
             pstmt.setString(5, taxRate3);
             pstmt.setString(6, taxRate4);
             pstmt.setDouble(7, price);
-            pstmt.setInt(8, itemNumber);
+            pstmt.setString(8, recStatus);
+            pstmt.setInt(9, itemNumber);
             pstmt.executeUpdate();
         }
     }
 
-    private static void insertProduct(Connection conn, String productClass, int itemNumber, String label,
-                                      String taxRate1, String taxRate2, String taxRate3, String taxRate4, double price) throws SQLException {
-        String insertSQL = "INSERT INTO Product (class, item_number, label, tax_rate_1, tax_rate_2, tax_rate_3, tax_rate_4, price) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    private static void insertProduct(Connection conn, String categoryCode, int itemNumber, String label,
+                                      String taxRate1, String taxRate2, String taxRate3, String taxRate4,
+                                      double price, String recStatus) throws SQLException {
+
+        String categoryId = getCategoryId(conn, categoryCode);
+
+        String insertSQL = "INSERT INTO Product (category_id, item_number, label, tax_rate_1, tax_rate_2, " +
+                "tax_rate_3, tax_rate_4, price, rec_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-            pstmt.setString(1, productClass);
+            pstmt.setString(1, categoryId);
             pstmt.setInt(2, itemNumber);
             pstmt.setString(3, label);
             pstmt.setString(4, taxRate1);
@@ -110,7 +113,155 @@ public class CSVImporter {
             pstmt.setString(6, taxRate3);
             pstmt.setString(7, taxRate4);
             pstmt.setDouble(8, price);
+            pstmt.setString(9, recStatus);
             pstmt.executeUpdate();
         }
     }
+
+    private static String getCategoryId(Connection conn, String categoryCode) throws SQLException {
+        String query = "SELECT category_name FROM Category WHERE category_code = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, categoryCode);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("category_name");
+            }
+        }
+
+        // If category doesn't exist, insert it
+        String insertSQL = "INSERT INTO Category (category_code, category_name) VALUES (?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(insertSQL, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, categoryCode);
+            pstmt.setString(2, categoryCode); // Use category_code as name if missing
+            pstmt.executeUpdate();
+            ResultSet rs = pstmt.getGeneratedKeys();
+            if (rs.next()) {
+                return rs.getString(1);
+            }
+        }
+        return "NA";
+    }
+
+
+    // === 2. IMPORT SALES CSV ===
+    public static void importSalesCSV(String filePath) {
+        int addedCount = 0;
+
+        try (Connection conn = DatabaseHelper.connect();
+             BufferedReader br = Files.newBufferedReader(Paths.get(filePath))) {
+
+            String line;
+            boolean firstLine = true;
+
+            while ((line = br.readLine()) != null) {
+                if (firstLine) {
+                    firstLine = false;
+                    continue;
+                }
+
+                String[] values = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+
+                if (values.length < 3) {
+                    System.err.println("Skipping invalid row: " + line);
+                    continue;
+                }
+
+                try {
+                    int itemNumber = Integer.parseInt(values[0].trim());
+                    int quantity = Integer.parseInt(values[1].trim());
+                    double price = Double.parseDouble(values[2].replace("$", "").trim());
+
+                    String date = values.length > 3 && !values[3].trim().isEmpty()
+                            ? values[3].trim()
+                            : LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+                    insertSale(conn, itemNumber, quantity, price, date);
+                    addedCount++;
+                } catch (NumberFormatException e) {
+                    System.err.println("Skipping row due to incorrect number format: " + line);
+                }
+            }
+
+            System.out.println(addedCount + " sales records added.");
+
+        } catch (IOException | SQLException e) {
+            System.err.println("Error importing Sales CSV: " + e.getMessage());
+        }
+    }
+
+    private static void insertSale(Connection conn, int itemNumber, int quantity, double price, String date) throws SQLException {
+        String insertSQL = "INSERT INTO Sales (item_number, quantity, date, amount) VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+            pstmt.setInt(1, itemNumber);
+            pstmt.setInt(2, quantity);
+            pstmt.setString(3, date);
+            pstmt.setDouble(4, price * quantity);
+            pstmt.executeUpdate();
+        }
+    }
+
+    // === 3. IMPORT PRODUCT CATEGORY CSV ===
+    public static void importProductCategoryCSV(String filePath) {
+        int addedCount = 0;
+        Set<String> existingCategories = new HashSet<>();
+
+        try (Connection conn = DatabaseHelper.connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT category_code FROM Category")) {
+            while (rs.next()) {
+                existingCategories.add(rs.getString("category_code"));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching existing categories: " + e.getMessage());
+        }
+
+        try (Connection conn = DatabaseHelper.connect();
+             BufferedReader br = Files.newBufferedReader(Paths.get(filePath))) {
+
+            String line;
+            boolean firstLine = true;
+
+            while ((line = br.readLine()) != null) {
+                if (firstLine) {
+                    firstLine = false;
+                    continue;
+                }
+
+                String[] values = line.split(",");
+                String categoryCode, categoryName;
+
+                if (values.length == 1) {
+                    categoryCode = values[0].trim(); // Use same value for both
+                    categoryName = values[0].trim();
+                } else if (values.length >= 2) {
+                    categoryCode = values[0].trim();
+                    categoryName = values[1].trim();
+                } else {
+                    continue; // Skip invalid rows
+                }
+
+                if (!existingCategories.contains(categoryCode)) {
+                    insertCategory(conn, categoryCode, categoryName);
+                    addedCount++;
+                }
+            }
+
+            System.out.println(addedCount + " categories added.");
+
+        } catch (IOException | SQLException e) {
+            System.err.println("Error importing Category CSV: " + e.getMessage());
+        }
+    }
+
+    private static void insertCategory(Connection conn, String categoryCode, String categoryName) throws SQLException {
+        String insertSQL = "INSERT INTO Category (category_code, category_name) VALUES (?, ?) " +
+                "ON CONFLICT(category_code) DO NOTHING";
+        try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+            pstmt.setString(1, categoryCode);
+            pstmt.setString(2, categoryName);
+            pstmt.executeUpdate();
+        }
+    }
+
 }

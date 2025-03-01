@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="controllers.CategoryController" spacing="10">
+
+    <HBox spacing="10">
+        <Button fx:id="btnImportCategories" text="Import Categories CSV" onAction="#importCategoryCSV"/>
+    </HBox>
+
+    <TableView fx:id="categoryTable">
+        <columns>
+            <TableColumn fx:id="colCategoryCode" text="Category Code"/>
+            <TableColumn fx:id="colCategoryName" text="Category Name"/>
+        </columns>
+    </TableView>
+
+</VBox>

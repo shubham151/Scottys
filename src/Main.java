@@ -1,30 +1,34 @@
-
 import database.DatabaseHelper;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.control.TabPane;
 import javafx.stage.Stage;
+import javafx.scene.layout.Region;
 
 import java.io.IOException;
+import java.net.URL;
 
 public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws IOException {
         DatabaseHelper.initializeDatabase();
-        DatabaseHelper.createTable();
+        DatabaseHelper.createTables();
 
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/ProductView.fxml"));
-        AnchorPane root = loader.load();
+        URL fxmlUrl = getClass().getResource("/views/ProductView.fxml");
+        if (fxmlUrl == null) {
+            throw new RuntimeException("Cannot find ProductView.fxml in /views/");
+        }
 
+        FXMLLoader loader = new FXMLLoader(fxmlUrl);
+        TabPane root = loader.load();
+
+//        Scene scene = new Scene(root, Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
         Scene scene = new Scene(root);
         primaryStage.setTitle("Scottys - Analytics");
 
-        // Set full screen
-//        primaryStage.setFullScreen(true);
         primaryStage.setMaximized(true);
-
         primaryStage.setScene(scene);
         primaryStage.show();
     }

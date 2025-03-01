@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="controllers.SalesController" prefWidth="Infinity" prefHeight="Infinity">
+    <TableView fx:id="salesTable">
+        <columns>
+            <TableColumn fx:id="colItemNumber" text="Item Number"/>
+            <TableColumn fx:id="colDate" text="Date"/>
+            <TableColumn fx:id="colAmount" text="Amount"/>
+        </columns>
+    </TableView>
+</VBox>
+
