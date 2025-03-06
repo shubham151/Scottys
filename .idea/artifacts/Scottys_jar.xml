@@ -1,0 +1,17 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Scottys:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Scottys_jar</output-path>
+    <root id="archive" name="Scottys.jar">
+      <element id="module-output" name="Scottys" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/sqlite-jdbc-3.49.1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/openjfx-17.0.14_linux-x64_bin-sdk/javafx-sdk-17.0.14/lib/javafx-swt.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/openjfx-17.0.14_linux-x64_bin-sdk/javafx-sdk-17.0.14/lib/javafx.web.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/openjfx-17.0.14_linux-x64_bin-sdk/javafx-sdk-17.0.14/lib/javafx.base.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/openjfx-17.0.14_linux-x64_bin-sdk/javafx-sdk-17.0.14/lib/javafx.fxml.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/openjfx-17.0.14_linux-x64_bin-sdk/javafx-sdk-17.0.14/lib/javafx.media.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/openjfx-17.0.14_linux-x64_bin-sdk/javafx-sdk-17.0.14/lib/javafx.swing.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/openjfx-17.0.14_linux-x64_bin-sdk/javafx-sdk-17.0.14/lib/javafx.controls.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/openjfx-17.0.14_linux-x64_bin-sdk/javafx-sdk-17.0.14/lib/javafx.graphics.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

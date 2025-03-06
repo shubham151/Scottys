@@ -6,7 +6,6 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-
 <TabPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
          fx:controller="controllers.MainController" fx:id="mainTabPane" prefWidth="Infinity" prefHeight="Infinity">
     <tabs>
@@ -25,7 +24,10 @@
                 <fx:include source="SalesTab.fxml"/>
             </AnchorPane>
         </Tab>
+        <Tab fx:id="analyticsTab" text="Analytics">
+            <AnchorPane>
+                <fx:include source="AnalyticsTab.fxml"/>
+            </AnchorPane>
+        </Tab>
     </tabs>
 </TabPane>
-
-

@@ -4,7 +4,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.TabPane;
 import javafx.stage.Stage;
-import javafx.scene.layout.Region;
 
 import java.io.IOException;
 import java.net.URL;
@@ -23,11 +22,10 @@ public class Main extends Application {
 
         FXMLLoader loader = new FXMLLoader(fxmlUrl);
         TabPane root = loader.load();
+        
+        Scene scene = new Scene(root, 1280, 720);
 
-//        Scene scene = new Scene(root, Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
-        Scene scene = new Scene(root);
         primaryStage.setTitle("Scottys - Analytics");
-
         primaryStage.setMaximized(true);
         primaryStage.setScene(scene);
         primaryStage.show();

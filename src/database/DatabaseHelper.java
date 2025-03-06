@@ -24,6 +24,50 @@ public class DatabaseHelper {
         }
     }
 
+
+//    private static final String DB_PATH = getDatabasePath();
+//
+//    // Method to determine the database path based on the OS
+//    private static String getDatabasePath() {
+//        String os = System.getProperty("os.name").toLowerCase();
+//        String dbFolder;
+//
+//        if (os.contains("win")) {
+//            // For Windows, use AppData
+//            dbFolder = System.getenv("APPDATA") + "/ScottysApp/db/";
+//        } else if (os.contains("mac")) {
+//            // For macOS, use the user's Library folder
+//            dbFolder = System.getProperty("user.home") + "/Library/Application Support/ScottysApp/db/";
+//        } else if (os.contains("nix") || os.contains("nux")) {
+//            // For Linux, use the home directory or ~/.local
+//            dbFolder = System.getProperty("user.home") + "/.local/share/ScottysApp/db/";
+//        } else {
+//            // Default to user's home directory if OS type is unknown
+//            dbFolder = System.getProperty("user.home") + "/ScottysApp/db/";
+//        }
+//
+//        // Create the necessary directories if they don't exist
+//        File folder = new File(dbFolder);
+//        if (!folder.exists()) {
+//            folder.mkdirs();
+//        }
+//
+//        // Return the complete database path
+//        return dbFolder + "product_database.db";
+//    }
+//
+//    public static void initializeDatabase() {
+//        File dbFile = new File(DB_PATH);
+//        if (!dbFile.exists()) {
+//            try {
+//                Files.createDirectories(new File(DB_PATH).getParentFile().toPath());
+//                System.out.println("Database initialized at: " + DB_PATH);
+//            } catch (Exception e) {
+//                System.err.println("Failed to initialize database: " + e.getMessage());
+//            }
+//        }
+//    }
+
     public static Connection connect() {
         initializeDatabase();
         Connection conn = null;
@@ -83,8 +127,9 @@ public class DatabaseHelper {
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "item_number INTEGER, " +
                 "quantity INTEGER, " +
-                "date TEXT, " +
-                "amount REAL, " +
+                "price REAL, " +
+                "from_date DATE, " +
+                "to_date DATE, " +
                 "FOREIGN KEY (item_number) REFERENCES Product(item_number))";
 
         try (Connection conn = connect();
@@ -94,6 +139,7 @@ public class DatabaseHelper {
             System.err.println("Error creating Sales table: " + e.getMessage());
         }
     }
+
 
     private static void createCategoryTable() {
         String sql = "CREATE TABLE IF NOT EXISTS Category (" +

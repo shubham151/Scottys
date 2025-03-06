@@ -144,6 +144,8 @@ public class CSVImporter {
 
 
     // === 2. IMPORT SALES CSV ===
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("M/d/yyyy"); // CSV Format
+
     public static void importSalesCSV(String filePath) {
         int addedCount = 0;
 
@@ -154,14 +156,14 @@ public class CSVImporter {
             boolean firstLine = true;
 
             while ((line = br.readLine()) != null) {
-                if (firstLine) {
+                if (firstLine) { // ✅ Skip header row
                     firstLine = false;
                     continue;
                 }
 
-                String[] values = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+                String[] values = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)"); // ✅ Handle CSV commas
 
-                if (values.length < 3) {
+                if (values.length < 5) { // ✅ Ensure correct column count
                     System.err.println("Skipping invalid row: " + line);
                     continue;
                 }
@@ -171,35 +173,36 @@ public class CSVImporter {
                     int quantity = Integer.parseInt(values[1].trim());
                     double price = Double.parseDouble(values[2].replace("$", "").trim());
 
-                    String date = values.length > 3 && !values[3].trim().isEmpty()
-                            ? values[3].trim()
-                            : LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                    // ✅ Convert date strings to LocalDate
+                    LocalDate fromDate = LocalDate.parse(values[3].trim(), DATE_FORMATTER);
+                    LocalDate toDate = LocalDate.parse(values[4].trim(), DATE_FORMATTER);
 
-                    insertSale(conn, itemNumber, quantity, price, date);
+                    insertSale(conn, itemNumber, quantity, price, fromDate, toDate);
                     addedCount++;
-                } catch (NumberFormatException e) {
-                    System.err.println("Skipping row due to incorrect number format: " + line);
+                } catch (Exception e) {
+                    System.err.println("Skipping row due to error: " + line + " | Error: " + e.getMessage());
                 }
             }
 
             System.out.println(addedCount + " sales records added.");
-
         } catch (IOException | SQLException e) {
             System.err.println("Error importing Sales CSV: " + e.getMessage());
         }
     }
 
-    private static void insertSale(Connection conn, int itemNumber, int quantity, double price, String date) throws SQLException {
-        String insertSQL = "INSERT INTO Sales (item_number, quantity, date, amount) VALUES (?, ?, ?, ?)";
+    private static void insertSale(Connection conn, int itemNumber, int quantity, double price, LocalDate fromDate, LocalDate toDate) throws SQLException {
+        String insertSQL = "INSERT INTO Sales (item_number, quantity, price, from_date, to_date) VALUES (?, ?, ?, ?, ?)";
 
         try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
             pstmt.setInt(1, itemNumber);
             pstmt.setInt(2, quantity);
-            pstmt.setString(3, date);
-            pstmt.setDouble(4, price * quantity);
+            pstmt.setDouble(3, price);
+            pstmt.setDate(4, java.sql.Date.valueOf(fromDate)); // ✅ Convert LocalDate to SQL Date
+            pstmt.setDate(5, java.sql.Date.valueOf(toDate));   // ✅ Convert LocalDate to SQL Date
             pstmt.executeUpdate();
         }
     }
+
 
     // === 3. IMPORT PRODUCT CATEGORY CSV ===
     public static void importProductCategoryCSV(String filePath) {

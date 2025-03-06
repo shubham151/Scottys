@@ -57,7 +57,6 @@ public class ProductController {
         colCategory.setCellFactory(ComboBoxTableCell.forTableColumn(categoryList));
         colCategory.setOnEditCommit(event -> updateProductCategory(event.getRowValue(), event.getNewValue()));
 
-        // ✅ Ensure text color is visible in editable mode
         colCategory.setCellFactory(column -> new ComboBoxTableCell<>() {
             @Override
             public void updateItem(String item, boolean empty) {
@@ -142,7 +141,7 @@ public class ProductController {
         if (selectedFile != null) {
             CSVImporter.importProductsCSV(selectedFile.getAbsolutePath());
             loadProducts(); // Refresh product list
-            productTable.refresh(); // ✅ Ensure UI updates
+            productTable.refresh();
         }
     }
 }
