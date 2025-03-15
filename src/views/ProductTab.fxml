@@ -1,35 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-
-<AnchorPane xmlns="http://javafx.com/javafx/8.0"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="controllers.ProductController">
-
-    <HBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10" AnchorPane.rightAnchor="10">
-        <ComboBox fx:id="categoryDropdown" promptText="Filter by Category"/>
-        <TextField fx:id="searchField" promptText="Search by Label"/>
-        <Button fx:id="btnImport" text="Import CSV" onAction="#importCSV"/>
-    </HBox>
-
-    <TableView fx:id="productTable" editable="true" AnchorPane.topAnchor="50" AnchorPane.leftAnchor="10"
-               prefWidth="1028" prefHeight="720"
-               AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="60">
-        <columns>
-            <TableColumn fx:id="colItemNumber" text="Item Number"/>
-            <TableColumn fx:id="colLabel" text="Label"/>
-            <TableColumn fx:id="colCategory" text="Category" editable="true"/>
-            <TableColumn fx:id="colTaxRate1" text="Tax Rate 1"/>
-            <TableColumn fx:id="colTaxRate2" text="Tax Rate 2"/>
-            <TableColumn fx:id="colTaxRate3" text="Tax Rate 3"/>
-            <TableColumn fx:id="colTaxRate4" text="Tax Rate 4"/>
-            <TableColumn fx:id="colPrice" text="Price"/>
-            <TableColumn fx:id="colStatus" text="Status"/>
-        </columns>
-    </TableView>
-
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.collections.FXCollections?>
+<?import java.lang.String?>
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controllers.ProductController">
+    <children>
+        <VBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10"
+              AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="10">
+            <children>
+                <HBox spacing="10">
+                    <Label text="Search:"/>
+                    <TextField fx:id="searchField" promptText="Search by product name"/>
+                    <Label text="Category:"/>
+                    <ComboBox fx:id="categoryDropdown" prefWidth="150"/>
+                    <Button fx:id="btnImport" text="Import CSV"/>
+                </HBox>
+                <TableView fx:id="productTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colItemNumber" minWidth="100">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Item Number"/>
+                                    <TextField fx:id="tfItemNumberFilter" promptText="Filter"/>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                        <TableColumn fx:id="colLabel" minWidth="400">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Label"/>
+                                    <TextField fx:id="tfLabelFilter" promptText="Filter"/>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                        <TableColumn fx:id="colCategory" minWidth="200">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Category"/>
+                                    <TextField fx:id="tfCategoryFilter" promptText="Filter"/>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                        <TableColumn fx:id="colTaxRate1" text="Tax Rate 1"/>
+                        <TableColumn fx:id="colTaxRate2" text="Tax Rate 2"/>
+                        <TableColumn fx:id="colTaxRate3" text="Tax Rate 3"/>
+                        <TableColumn fx:id="colTaxRate4" text="Tax Rate 4"/>
+                        <TableColumn fx:id="colPrice" minWidth="200">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Price"/>
+                                    <HBox spacing="2">
+                                        <ComboBox fx:id="cbPriceComparator" promptText="Op">
+                                            <items>
+                                                <FXCollections fx:factory="observableArrayList">
+                                                    <String fx:value="&gt;"/>
+                                                    <String fx:value="&lt;"/>
+                                                    <String fx:value="="/>
+                                                </FXCollections>
+                                            </items>
+                                        </ComboBox>
+                                        <TextField fx:id="tfPriceFilter" promptText="Value"/>
+                                    </HBox>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                        <TableColumn fx:id="colStatus">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Status"/>
+                                    <TextField fx:id="tfStatusFilter" promptText="Filter"/>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                    </columns>
+                </TableView>
+            </children>
+        </VBox>
+    </children>
 </AnchorPane>
-

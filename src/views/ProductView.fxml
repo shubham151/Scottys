@@ -1,33 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-
-<TabPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-         fx:controller="controllers.MainController" fx:id="mainTabPane" prefWidth="Infinity" prefHeight="Infinity">
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.Tab?>
+<TabPane fx:id="mainTabPane" xmlns:fx="http://javafx.com/fxml" fx:controller="controllers.MainController">
     <tabs>
-        <Tab fx:id="productTab" text="Product">
-            <AnchorPane>
+        <Tab fx:id="productTab" text="Products">
+            <content>
                 <fx:include source="ProductTab.fxml"/>
-            </AnchorPane>
+            </content>
         </Tab>
-        <Tab fx:id="categoryTab" text="Category">
-            <AnchorPane>
+        <Tab fx:id="categoryTab" text="Categories">
+            <content>
                 <fx:include source="CategoryTab.fxml"/>
-            </AnchorPane>
+            </content>
         </Tab>
         <Tab fx:id="salesTab" text="Sales">
-            <AnchorPane>
+            <content>
                 <fx:include source="SalesTab.fxml"/>
-            </AnchorPane>
+            </content>
         </Tab>
         <Tab fx:id="analyticsTab" text="Analytics">
-            <AnchorPane>
+            <content>
                 <fx:include source="AnalyticsTab.fxml"/>
-            </AnchorPane>
+            </content>
+        </Tab>
+        <Tab fx:id="chartsTab" text="Charts">
+            <content>
+                <fx:include source="ChartsTab.fxml"/>
+            </content>
         </Tab>
     </tabs>
 </TabPane>

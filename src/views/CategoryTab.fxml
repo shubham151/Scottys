@@ -1,30 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-
-<AnchorPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="controllers.CategoryController"
-            prefWidth="Infinity" prefHeight="Infinity">
-<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-      
-      prefWidth="600" prefHeight="720"
-
-      spacing="10">
-
-    <HBox spacing="10">
-        <Button fx:id="btnImportCategories" text="Import Categories CSV" onAction="#importCategoryCSV"/>
-    </HBox>
-
-    <TableView fx:id="categoryTable">
-        <columns>
-            <TableColumn fx:id="colCategoryCode" text="Category Code"/>
-            <TableColumn fx:id="colCategoryName" text="Category Name"/>
-        </columns>
-    </TableView>
-
-</VBox>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controllers.CategoryController">
+    <children>
+        <VBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10"
+              AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="10">
+            <children>
+                <Button fx:id="btnImportCategories" text="Import Category CSV"/>
+                <TableView fx:id="categoryTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colCategoryCode" minWidth="200">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Category Code"/>
+                                    <TextField fx:id="tfCategoryCodeFilter" promptText="Filter"/>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                        <TableColumn fx:id="colCategoryName" minWidth="200">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Category Name"/>
+                                    <TextField fx:id="tfCategoryNameFilter" promptText="Filter"/>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                    </columns>
+                </TableView>
+            </children>
+        </VBox>
+    </children>
 </AnchorPane>

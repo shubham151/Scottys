@@ -9,35 +9,44 @@ public class AnalyticsData {
     private final IntegerProperty itemNumber;
     private final StringProperty label;
     private final StringProperty category;
-    private final DoubleProperty price;
+    private final DoubleProperty cost;
+    private final DoubleProperty retail;
+    private final DoubleProperty total_cost;
+    private final DoubleProperty total_retail;
     private final IntegerProperty quantity;
-    private final DoubleProperty sales;
     private Map<String, Integer> weeklySales = new HashMap<>();
 
-    public AnalyticsData(int itemNumber, String label, String category, double price, int quantity, double sales) {
+    public AnalyticsData(int itemNumber, String label, String category,
+                         double cost, double retail, double total_cost, double total_retail,  int quantity) {
         this.itemNumber = new SimpleIntegerProperty(itemNumber);
         this.label = new SimpleStringProperty(label);
         this.category = new SimpleStringProperty(category);
-        this.price = new SimpleDoubleProperty(price);
+        this.cost = new SimpleDoubleProperty(cost);
+        this.retail = new SimpleDoubleProperty(retail);
+        this.total_cost = new SimpleDoubleProperty(total_cost);
+        this.total_retail = new SimpleDoubleProperty(total_retail);
         this.quantity = new SimpleIntegerProperty(quantity);
-        this.sales = new SimpleDoubleProperty(sales);
     }
 
     // Getters
     public int getItemNumber() { return itemNumber.get(); }
     public String getLabel() { return label.get(); }
     public String getCategory() { return category.get(); }
-    public double getPrice() { return price.get(); }
+    public double getCost() { return cost.get(); }
+    public double getRetail() { return retail.get(); }
+    public double getTotalCost() { return total_cost.get(); }
+    public double getTotalRetail() { return total_retail.get(); }
     public int getQuantity() { return quantity.get(); }
-    public double getSales() { return sales.get(); }
 
     // JavaFX Properties for TableView binding
     public IntegerProperty itemNumberProperty() { return itemNumber; }
     public StringProperty labelProperty() { return label; }
     public StringProperty categoryProperty() { return category; }
-    public DoubleProperty priceProperty() { return price; }
+    public DoubleProperty costProperty() { return cost; }
+    public DoubleProperty retailProperty() { return retail; }
+    public DoubleProperty totalCostProperty() { return total_cost; }
+    public DoubleProperty totalRetailProperty() { return total_retail; }
     public IntegerProperty quantityProperty() { return quantity; }
-    public DoubleProperty salesProperty() { return sales; }
 
     public Map<String, Integer> getWeeklySales() {
         return weeklySales;

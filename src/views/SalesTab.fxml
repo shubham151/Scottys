@@ -1,30 +1,83 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<AnchorPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="controllers.SalesController"
-            prefWidth="Infinity" prefHeight="Infinity">
-
-
-    <VBox xmlns="http://javafx.com/javafx"
-          xmlns:fx="http://javafx.com/fxml"
-
-          spacing="10" alignment="CENTER">
-
-        <Button text="Import Sales CSV" fx:id="btnImportSales" onAction="#importSalesCSV"/>
-
-        <TableView fx:id="salesTable" prefWidth="600" prefHeight="400">
-            <columns>
-                <TableColumn text="Item Number" fx:id="colItemNumber" />
-                <TableColumn text="Quantity" fx:id="colQuantity" />
-                <TableColumn text="Price" fx:id="colPrice" />
-                <TableColumn text="From Date" fx:id="colFromDate" />
-                <TableColumn text="To Date" fx:id="colToDate" />
-            </columns>
-        </TableView>
-
-    </VBox>
-
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.collections.FXCollections?>
+<?import java.lang.String?>
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controllers.SalesController">
+    <children>
+        <VBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10"
+              AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="10">
+            <children>
+                <Button fx:id="btnImportSales" text="Import Sales CSV" onAction="#importSalesCSV"/>
+                <TableView fx:id="salesTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colItemNumber" minWidth="100">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Item Number"/>
+                                    <TextField fx:id="tfSalesItemNumberFilter" promptText="Filter"/>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                        <TableColumn fx:id="colQuantity" minWidth="100">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Quantity"/>
+                                    <TextField fx:id="tfQuantityFilter" promptText="Filter"/>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                        <TableColumn fx:id="colPrice" minWidth="100">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Price"/>
+                                    <TextField fx:id="tfSalesPriceFilter" promptText="Filter"/>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                        <TableColumn fx:id="colFromDate" minWidth="200">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="From Date"/>
+                                    <HBox spacing="2">
+                                        <ComboBox fx:id="cbFromDateComparator" promptText="Op">
+                                            <items>
+                                                <FXCollections fx:factory="observableArrayList">
+                                                    <String fx:value="&gt;"/>
+                                                    <String fx:value="&lt;"/>
+                                                    <String fx:value="="/>
+                                                </FXCollections>
+                                            </items>
+                                        </ComboBox>
+                                        <DatePicker fx:id="dpFromDateFilter"/>
+                                    </HBox>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                        <TableColumn fx:id="colToDate" minWidth="200">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="To Date"/>
+                                    <HBox spacing="2">
+                                        <ComboBox fx:id="cbToDateComparator" promptText="Op">
+                                            <items>
+                                                <FXCollections fx:factory="observableArrayList">
+                                                    <String fx:value="&gt;"/>
+                                                    <String fx:value="&lt;"/>
+                                                    <String fx:value="="/>
+                                                </FXCollections>
+                                            </items>
+                                        </ComboBox>
+                                        <DatePicker fx:id="dpToDateFilter"/>
+                                    </HBox>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                    </columns>
+                </TableView>
+            </children>
+        </VBox>
+    </children>
 </AnchorPane>
-
