@@ -23,7 +23,7 @@
                 </HBox>
                 <TableView fx:id="analyticsTable" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn fx:id="colItemNumber">
+                        <TableColumn fx:id="colItemNumber" minWidth="150">
                             <graphic>
                                 <VBox spacing="2">
                                     <Label text="Item Number"/>
@@ -31,7 +31,7 @@
                                 </VBox>
                             </graphic>
                         </TableColumn>
-                        <TableColumn fx:id="colLabel">
+                        <TableColumn fx:id="colLabel" minWidth="300">
                             <graphic>
                                 <VBox spacing="2">
                                     <Label text="Label"/>
@@ -39,7 +39,7 @@
                                 </VBox>
                             </graphic>
                         </TableColumn>
-                        <TableColumn fx:id="colCategory">
+                        <TableColumn fx:id="colCategory" minWidth="150">
                             <graphic>
                                 <VBox spacing="2">
                                     <Label text="Category"/>
@@ -47,7 +47,7 @@
                                 </VBox>
                             </graphic>
                         </TableColumn>
-                        <TableColumn fx:id="colCost">
+                        <TableColumn fx:id="colCost" minWidth="150">
                             <graphic>
                                 <VBox spacing="2">
                                     <Label text="Cost"/>
@@ -66,7 +66,7 @@
                                 </VBox>
                             </graphic>
                         </TableColumn>
-                        <TableColumn fx:id="colRetail">
+                        <TableColumn fx:id="colRetail" minWidth="150">
                             <graphic>
                                 <VBox spacing="2">
                                     <Label text="Retail"/>
@@ -85,7 +85,7 @@
                                 </VBox>
                             </graphic>
                         </TableColumn>
-                        <TableColumn fx:id="colTotalCost">
+                        <TableColumn fx:id="colTotalCost" minWidth="150">
                             <graphic>
                                 <VBox spacing="2">
                                     <Label text="Total Cost"/>
@@ -104,7 +104,7 @@
                                 </VBox>
                             </graphic>
                         </TableColumn>
-                        <TableColumn fx:id="colTotalRetail">
+                        <TableColumn fx:id="colTotalRetail" minWidth="150">
                             <graphic>
                                 <VBox spacing="2">
                                     <Label text="Total Retail"/>
@@ -123,7 +123,7 @@
                                 </VBox>
                             </graphic>
                         </TableColumn>
-                        <TableColumn fx:id="colQuantity">
+                        <TableColumn fx:id="colQuantity" minWidth="150">
                             <graphic>
                                 <VBox spacing="2">
                                     <Label text="Quantity"/>
@@ -142,25 +142,7 @@
                                 </VBox>
                             </graphic>
                         </TableColumn>
-                        <TableColumn fx:id="colSales">
-                            <graphic>
-                                <VBox spacing="2">
-                                    <Label text="Sales"/>
-                                    <HBox spacing="2">
-                                        <ComboBox fx:id="cbSalesComparator" promptText="Op">
-                                            <items>
-                                                <FXCollections fx:factory="observableArrayList">
-                                                    <String fx:value="&gt;"/>
-                                                    <String fx:value="&lt;"/>
-                                                    <String fx:value="="/>
-                                                </FXCollections>
-                                            </items>
-                                        </ComboBox>
-                                        <TextField fx:id="tfSalesFilter" promptText="Value"/>
-                                    </HBox>
-                                </VBox>
-                            </graphic>
-                        </TableColumn>
+
                     </columns>
                 </TableView>
             </children>

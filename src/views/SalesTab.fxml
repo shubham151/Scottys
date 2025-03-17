@@ -32,7 +32,7 @@
                         <TableColumn fx:id="colPrice" minWidth="100">
                             <graphic>
                                 <VBox spacing="2">
-                                    <Label text="Price"/>
+                                    <Label text="Retail"/>
                                     <TextField fx:id="tfSalesPriceFilter" promptText="Filter"/>
                                 </VBox>
                             </graphic>

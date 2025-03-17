@@ -3,6 +3,8 @@ package services;
 import database.DatabaseHelper;
 import models.AnalyticsData;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -20,6 +22,7 @@ public class AnalyticsService {
                         String.join(",", categories.stream().map(c -> "?").toArray(String[]::new)) +
                         ")";
 
+        // Updated ORDER BY clause: order by category name ascending and then by total_quantity descending.
         String query = "SELECT p.item_number, p.label, c.category_name, p.price AS cost, s.price AS retail, " +
                 "SUM(s.quantity) AS total_quantity, " +
                 "ROUND(SUM(s.quantity * p.price), 2) AS total_cost, " +
@@ -30,7 +33,7 @@ public class AnalyticsService {
                 "WHERE (s.from_date >= ? AND s.to_date <= ?) " +
                 categoryFilter + " " +
                 "GROUP BY p.item_number, p.label, c.category_name, p.price " +
-                "ORDER BY s.from_date, p.category_id, total_quantity DESC";
+                "ORDER BY c.category_name ASC, total_quantity DESC";
 
         try (Connection conn = DatabaseHelper.connect();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -64,7 +67,39 @@ public class AnalyticsService {
         } catch (SQLException e) {
             System.err.println("Error fetching analytics data: " + e.getMessage());
         }
-        return analyticsData;
+
+        // Group the product-level rows by category and add a subtotal row for each category.
+        List<AnalyticsData> finalData = new ArrayList<>();
+        Map<String, List<AnalyticsData>> grouped = analyticsData.stream()
+                .collect(Collectors.groupingBy(AnalyticsData::getCategory));
+
+        // Sort the category names in ascending order.
+        List<String> sortedCategories = new ArrayList<>(grouped.keySet());
+        sortedCategories.sort(String::compareTo);
+
+        for (String cat : sortedCategories) {
+            List<AnalyticsData> group = grouped.get(cat);
+            // Ensure each group is sorted by quantity descending.
+            group.sort((a, b) -> Integer.compare(b.getQuantity(), a.getQuantity()));
+            // Add all product rows for this category.
+            finalData.addAll(group);
+
+            // Compute subtotals for the category.
+            int subtotalQty = group.stream().mapToInt(AnalyticsData::getQuantity).sum();
+            double subtotalTotalCost = group.stream().mapToDouble(AnalyticsData::getTotalCost).sum();
+            double subtotalTotalRetail = group.stream().mapToDouble(AnalyticsData::getTotalRetail).sum();
+            // Create a subtotal row (itemNumber = -1, label = "Sub Total").
+            double roundedSubtotalTotalCost = new BigDecimal(subtotalTotalCost)
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .doubleValue();
+            double roundedSubtotalTotalRetail = new BigDecimal(subtotalTotalRetail)
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .doubleValue();
+            AnalyticsData subtotal = new AnalyticsData(-1, "Sub Total", cat, 0.0, 0.0, roundedSubtotalTotalCost, roundedSubtotalTotalRetail, subtotalQty);
+            finalData.add(subtotal);
+        }
+
+        return finalData;
     }
 
     public List<AnalyticsData> getWeeklyAnalyticsData(LocalDate fromDate, LocalDate toDate, List<String> categories, List<String> weekRanges) {
@@ -161,7 +196,6 @@ public class AnalyticsService {
         return weeklySales;
     }
 
-    // Returns a mapping of product label to total quantity sold for the selected category and date range.
     public Map<String, Integer> getCategoryQuantityDistribution(LocalDate fromDate, LocalDate toDate, String category) {
         Map<String, Integer> distribution = new HashMap<>();
         String query = "SELECT p.label, SUM(s.quantity) as totalQty " +
@@ -190,8 +224,6 @@ public class AnalyticsService {
         return distribution;
     }
 
-    // Returns trend data for each product label in the selected category and date range.
-    // The returned Map maps a product label to a map of date (String) to quantity sold on that date.
     public Map<String, Map<String, Integer>> getSalesTrendByLabel(LocalDate fromDate, LocalDate toDate, String category) {
         Map<String, Map<String, Integer>> trendData = new HashMap<>();
         String query = "SELECT p.label, s.from_date, SUM(s.quantity) as qty " +
@@ -230,7 +262,6 @@ public class AnalyticsService {
         boolean selectAll = categories.contains("ALL");
         String categoryFilter = "";
         if (!selectAll) {
-            // Create placeholders for each category
             categoryFilter = "AND c.category_name IN (" +
                     String.join(",", categories.stream().map(c -> "?").toArray(String[]::new)) +
                     ")";

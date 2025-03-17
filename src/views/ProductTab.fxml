@@ -16,6 +16,8 @@
                     <Label text="Category:"/>
                     <ComboBox fx:id="categoryDropdown" prefWidth="150"/>
                     <Button fx:id="btnImport" text="Import CSV"/>
+                    <Button fx:id="btnAddProduct" text="Add Product" onAction="#addProduct"/>
+                    <Button fx:id="btnDeleteProduct" text="Delete Product" onAction="#deleteProduct"/>
                 </HBox>
                 <TableView fx:id="productTable" VBox.vgrow="ALWAYS">
                     <columns>
@@ -50,7 +52,7 @@
                         <TableColumn fx:id="colPrice" minWidth="200">
                             <graphic>
                                 <VBox spacing="2">
-                                    <Label text="Price"/>
+                                    <Label text="Cost"/>
                                     <HBox spacing="2">
                                         <ComboBox fx:id="cbPriceComparator" promptText="Op">
                                             <items>

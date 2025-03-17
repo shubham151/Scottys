@@ -16,4 +16,13 @@ public class Category {
     public String getCategoryName() {
         return categoryName;
     }
+
+    // Add setters so that editing is done in place.
+    public void setCategoryCode(String categoryCode) {
+        this.categoryCode = categoryCode;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
 }
