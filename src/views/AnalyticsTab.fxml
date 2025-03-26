@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.collections.FXCollections?>
-<?import java.lang.String?>
+<?import javafx.scene.layout.VBox?>
 <AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controllers.AnalyticsController">
     <children>
         <VBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10"
@@ -15,8 +13,11 @@
                     <DatePicker fx:id="fromDatePicker"/>
                     <Label text="To:"/>
                     <DatePicker fx:id="toDatePicker"/>
-                    <Label text="Categories:"/>
+                    <Label text="Category:"/>
                     <ComboBox fx:id="categoryDropdown" prefWidth="150"/>
+                    <Label text="Subcategory:"/>
+                    <ComboBox fx:id="subcategoryDropdown" prefWidth="150"/>
+
                     <Button text="Apply Filters" onAction="#applyFilters"/>
                     <Button text="Export CSV" onAction="#exportToCSV"/>
                     <Button text="Export Weekly CSV" onAction="#exportWeeklyCSV"/>
@@ -47,20 +48,20 @@
                                 </VBox>
                             </graphic>
                         </TableColumn>
+                        <TableColumn fx:id="colSubcategory" minWidth="150">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Subcategory"/>
+                                    <TextField fx:id="tfAnalyticsSubcategoryFilter" promptText="Filter"/>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
                         <TableColumn fx:id="colCost" minWidth="150">
                             <graphic>
                                 <VBox spacing="2">
                                     <Label text="Cost"/>
                                     <HBox spacing="2">
-                                        <ComboBox fx:id="cbCostComparator" promptText="Op">
-                                            <items>
-                                                <FXCollections fx:factory="observableArrayList">
-                                                    <String fx:value="&gt;"/>
-                                                    <String fx:value="&lt;"/>
-                                                    <String fx:value="="/>
-                                                </FXCollections>
-                                            </items>
-                                        </ComboBox>
+                                        <ComboBox fx:id="cbCostComparator" promptText="Op"/>
                                         <TextField fx:id="tfCostFilter" promptText="Value"/>
                                     </HBox>
                                 </VBox>
@@ -71,15 +72,7 @@
                                 <VBox spacing="2">
                                     <Label text="Retail"/>
                                     <HBox spacing="2">
-                                        <ComboBox fx:id="cbRetailComparator" promptText="Op">
-                                            <items>
-                                                <FXCollections fx:factory="observableArrayList">
-                                                    <String fx:value="&gt;"/>
-                                                    <String fx:value="&lt;"/>
-                                                    <String fx:value="="/>
-                                                </FXCollections>
-                                            </items>
-                                        </ComboBox>
+                                        <ComboBox fx:id="cbRetailComparator" promptText="Op"/>
                                         <TextField fx:id="tfRetailFilter" promptText="Value"/>
                                     </HBox>
                                 </VBox>
@@ -90,15 +83,7 @@
                                 <VBox spacing="2">
                                     <Label text="Total Cost"/>
                                     <HBox spacing="2">
-                                        <ComboBox fx:id="cbTotalCostComparator" promptText="Op">
-                                            <items>
-                                                <FXCollections fx:factory="observableArrayList">
-                                                    <String fx:value="&gt;"/>
-                                                    <String fx:value="&lt;"/>
-                                                    <String fx:value="="/>
-                                                </FXCollections>
-                                            </items>
-                                        </ComboBox>
+                                        <ComboBox fx:id="cbTotalCostComparator" promptText="Op"/>
                                         <TextField fx:id="tfTotalCostFilter" promptText="Value"/>
                                     </HBox>
                                 </VBox>
@@ -109,15 +94,7 @@
                                 <VBox spacing="2">
                                     <Label text="Total Retail"/>
                                     <HBox spacing="2">
-                                        <ComboBox fx:id="cbTotalRetailComparator" promptText="Op">
-                                            <items>
-                                                <FXCollections fx:factory="observableArrayList">
-                                                    <String fx:value="&gt;"/>
-                                                    <String fx:value="&lt;"/>
-                                                    <String fx:value="="/>
-                                                </FXCollections>
-                                            </items>
-                                        </ComboBox>
+                                        <ComboBox fx:id="cbTotalRetailComparator" promptText="Op"/>
                                         <TextField fx:id="tfTotalRetailFilter" promptText="Value"/>
                                     </HBox>
                                 </VBox>
@@ -128,21 +105,12 @@
                                 <VBox spacing="2">
                                     <Label text="Quantity"/>
                                     <HBox spacing="2">
-                                        <ComboBox fx:id="cbQuantityComparator" promptText="Op">
-                                            <items>
-                                                <FXCollections fx:factory="observableArrayList">
-                                                    <String fx:value="&gt;"/>
-                                                    <String fx:value="&lt;"/>
-                                                    <String fx:value="="/>
-                                                </FXCollections>
-                                            </items>
-                                        </ComboBox>
+                                        <ComboBox fx:id="cbQuantityComparator" promptText="Op"/>
                                         <TextField fx:id="tfQuantityAnalyticsFilter" promptText="Value"/>
                                     </HBox>
                                 </VBox>
                             </graphic>
                         </TableColumn>
-
                     </columns>
                 </TableView>
             </children>

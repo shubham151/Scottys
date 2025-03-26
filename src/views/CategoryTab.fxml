@@ -3,32 +3,34 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.collections.FXCollections?>
 <AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controllers.CategoryController">
     <children>
         <VBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10"
               AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="10">
             <children>
                 <HBox spacing="10">
-                    <Button fx:id="btnImportCategories" text="Import Category CSV"/>
+                    <Button fx:id="btnImportCategories" text="Import Category CSV" onAction="#importCategoryCSV"/>
                     <Button fx:id="btnAddCategory" text="Add Category" onAction="#addCategory"/>
                     <Button fx:id="btnDeleteCategory" text="Delete Category" onAction="#deleteCategory"/>
                 </HBox>
-
                 <TableView fx:id="categoryTable" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn fx:id="colCategoryCode" minWidth="200">
+                        <!-- Main Category Column -->
+                        <TableColumn fx:id="colCategory" minWidth="200">
                             <graphic>
                                 <VBox spacing="2">
-                                    <Label text="Category Code"/>
-                                    <TextField fx:id="tfCategoryCodeFilter" promptText="Filter"/>
+                                    <Label text="Category"/>
+                                    <TextField fx:id="tfCategoryFilter" promptText="Filter"/>
                                 </VBox>
                             </graphic>
                         </TableColumn>
-                        <TableColumn fx:id="colCategoryName" minWidth="200">
+                        <!-- Subcategory Column -->
+                        <TableColumn fx:id="colSubcategory" minWidth="200">
                             <graphic>
                                 <VBox spacing="2">
-                                    <Label text="Category Name"/>
-                                    <TextField fx:id="tfCategoryNameFilter" promptText="Filter"/>
+                                    <Label text="Subcategory"/>
+                                    <TextField fx:id="tfSubcategoryFilter" promptText="Filter"/>
                                 </VBox>
                             </graphic>
                         </TableColumn>

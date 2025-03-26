@@ -10,21 +10,38 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+
 <VBox xmlns:fx="http://javafx.com/fxml" fx:controller="controllers.ChartsController" spacing="10" alignment="CENTER">
     <padding>
         <Insets top="10" right="10" bottom="10" left="10"/>
     </padding>
+
     <!-- Filter Controls -->
     <HBox spacing="10" alignment="CENTER">
         <Label text="From:"/>
         <DatePicker fx:id="fromDatePicker"/>
+
         <Label text="To:"/>
         <DatePicker fx:id="toDatePicker"/>
+
         <Label text="Category:"/>
-        <!-- Multi-select ComboBox (customized in the controller) -->
-        <ComboBox fx:id="categoryDropdown" prefWidth="150"/>
+        <ComboBox fx:id="categoryDropdown" prefWidth="200"/>
+
         <Button text="Apply Filters" onAction="#applyFilters"/>
     </HBox>
+
+    <!-- View By Options for Pie and Line Charts -->
+    <HBox spacing="20" alignment="CENTER">
+        <VBox spacing="5" alignment="CENTER">
+            <Label text="View Pie Chart By:"/>
+            <ComboBox fx:id="viewByPieChart" prefWidth="160"/>
+        </VBox>
+        <VBox spacing="5" alignment="CENTER">
+            <Label text="View Line Chart By:"/>
+            <ComboBox fx:id="viewByLineChart" prefWidth="160"/>
+        </VBox>
+    </HBox>
+
     <!-- Charts Container -->
     <HBox spacing="10" alignment="CENTER">
         <PieChart fx:id="pieChart" prefWidth="400" prefHeight="400"/>

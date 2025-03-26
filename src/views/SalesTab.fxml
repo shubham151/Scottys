@@ -3,8 +3,6 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.collections.FXCollections?>
-<?import java.lang.String?>
 <AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controllers.SalesController">
     <children>
         <VBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10"
@@ -42,15 +40,7 @@
                                 <VBox spacing="2">
                                     <Label text="From Date"/>
                                     <HBox spacing="2">
-                                        <ComboBox fx:id="cbFromDateComparator" promptText="Op">
-                                            <items>
-                                                <FXCollections fx:factory="observableArrayList">
-                                                    <String fx:value="&gt;"/>
-                                                    <String fx:value="&lt;"/>
-                                                    <String fx:value="="/>
-                                                </FXCollections>
-                                            </items>
-                                        </ComboBox>
+                                        <ComboBox fx:id="cbFromDateComparator" promptText="Op"/>
                                         <DatePicker fx:id="dpFromDateFilter"/>
                                     </HBox>
                                 </VBox>
@@ -61,17 +51,17 @@
                                 <VBox spacing="2">
                                     <Label text="To Date"/>
                                     <HBox spacing="2">
-                                        <ComboBox fx:id="cbToDateComparator" promptText="Op">
-                                            <items>
-                                                <FXCollections fx:factory="observableArrayList">
-                                                    <String fx:value="&gt;"/>
-                                                    <String fx:value="&lt;"/>
-                                                    <String fx:value="="/>
-                                                </FXCollections>
-                                            </items>
-                                        </ComboBox>
+                                        <ComboBox fx:id="cbToDateComparator" promptText="Op"/>
                                         <DatePicker fx:id="dpToDateFilter"/>
                                     </HBox>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+                        <TableColumn fx:id="colStore" minWidth="150">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Store"/>
+                                    <TextField fx:id="tfStoreFilter" promptText="Filter"/>
                                 </VBox>
                             </graphic>
                         </TableColumn>

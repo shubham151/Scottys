@@ -22,18 +22,16 @@ public class CategoryController {
     @FXML private Button btnDeleteCategory;
     @FXML private Button btnImportCategories;
     @FXML private TableView<Category> categoryTable;
-    @FXML private TableColumn<Category, String> colCategoryCode;
-    @FXML private TableColumn<Category, String> colCategoryName;
-    @FXML private TextField tfCategoryCodeFilter;
-    @FXML private TextField tfCategoryNameFilter;
+    @FXML private TableColumn<Category, String> colCategory;
+    @FXML private TableColumn<Category, String> colSubcategory;
+    @FXML private TextField tfCategoryFilter;
+    @FXML private TextField tfSubcategoryFilter;
 
     private final int PAGE_SIZE = 1000;
     private int currentOffset = 0;
     private final CategoryService categoryService = new CategoryService();
     private ObservableList<Category> categoryList = FXCollections.observableArrayList();
     private FilteredList<Category> filteredCategories;
-
-    // Track new categories added via addCategory that haven't been saved.
     private final List<Category> newCategories = new ArrayList<>();
 
     @FXML
@@ -45,35 +43,26 @@ public class CategoryController {
     }
 
     private void setupTableColumns() {
-        // Configure Category Code column with in-place editing.
-        colCategoryCode.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getCategoryCode()));
-        colCategoryCode.setCellFactory(TextFieldTableCell.forTableColumn());
-        colCategoryCode.setOnEditCommit(event -> {
+        colCategory.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getCategory()));
+        colCategory.setCellFactory(TextFieldTableCell.forTableColumn());
+        colCategory.setOnEditCommit(event -> {
             Category cat = event.getRowValue();
-            cat.setCategoryCode(event.getNewValue().trim());
+            cat.setCategory(event.getNewValue().trim());
             attemptSaveCategory(cat);
         });
 
-        // Configure Category Name column with in-place editing.
-        colCategoryName.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getCategoryName()));
-        colCategoryName.setCellFactory(TextFieldTableCell.forTableColumn());
-        colCategoryName.setOnEditCommit(event -> {
+        colSubcategory.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getSubcategory()));
+        colSubcategory.setCellFactory(TextFieldTableCell.forTableColumn());
+        colSubcategory.setOnEditCommit(event -> {
             Category cat = event.getRowValue();
-            cat.setCategoryName(event.getNewValue().trim());
+            cat.setSubcategory(event.getNewValue().trim());
             attemptSaveCategory(cat);
         });
     }
 
-    /**
-     * Attempts to save the category if both fields are nonempty.
-     * If the category is tracked as new, then it calls insert;
-     * otherwise, it calls update.
-     */
     private void attemptSaveCategory(Category cat) {
-        // Only attempt a save if both fields are filled.
-        if (cat.getCategoryCode().isEmpty() || cat.getCategoryName().isEmpty()) {
-            return;
-        }
+        if (cat.getCategory().isEmpty() || cat.getSubcategory().isEmpty()) return;
+
         boolean success;
         if (newCategories.contains(cat)) {
             success = categoryService.insertCategory(cat);
@@ -98,7 +87,6 @@ public class CategoryController {
         currentOffset = 0;
         List<Category> cats = categoryService.getCategories(PAGE_SIZE, currentOffset, buildFilterQuery(), buildFilterParameters());
         categoryList.setAll(cats);
-        // Clear the newCategories list since these rows now come from the DB.
         newCategories.clear();
         filteredCategories = new FilteredList<>(categoryList, p -> true);
         categoryTable.setItems(filteredCategories);
@@ -112,26 +100,24 @@ public class CategoryController {
 
     private String buildFilterQuery() {
         StringBuilder sb = new StringBuilder();
-        String codeFilter = tfCategoryCodeFilter.getText().trim();
-        if (!codeFilter.isEmpty()) {
-            sb.append(" AND lower(category_code) LIKE ?");
+        if (!tfCategoryFilter.getText().trim().isEmpty()) {
+            sb.append(" AND lower(category) LIKE ?");
         }
-        String nameFilter = tfCategoryNameFilter.getText().trim();
-        if (!nameFilter.isEmpty()) {
-            sb.append(" AND lower(category_name) LIKE ?");
+        if (!tfSubcategoryFilter.getText().trim().isEmpty()) {
+            sb.append(" AND lower(subcategory) LIKE ?");
         }
         return sb.toString();
     }
 
     private List<Object> buildFilterParameters() {
         List<Object> params = new ArrayList<>();
-        String codeFilter = tfCategoryCodeFilter.getText().trim();
-        if (!codeFilter.isEmpty()) {
-            params.add("%" + codeFilter.toLowerCase() + "%");
+        String catFilter = tfCategoryFilter.getText().trim();
+        if (!catFilter.isEmpty()) {
+            params.add("%" + catFilter.toLowerCase() + "%");
         }
-        String nameFilter = tfCategoryNameFilter.getText().trim();
-        if (!nameFilter.isEmpty()) {
-            params.add("%" + nameFilter.toLowerCase() + "%");
+        String subcatFilter = tfSubcategoryFilter.getText().trim();
+        if (!subcatFilter.isEmpty()) {
+            params.add("%" + subcatFilter.toLowerCase() + "%");
         }
         return params;
     }
@@ -160,7 +146,6 @@ public class CategoryController {
 
     @FXML
     private void addCategory() {
-        // Create a new category with empty fields.
         Category newCategory = new Category("", "");
         newCategories.add(newCategory);
         categoryList.add(0, newCategory);
@@ -168,15 +153,20 @@ public class CategoryController {
         categoryTable.requestFocus();
         categoryTable.getSelectionModel().clearAndSelect(0);
         categoryTable.getFocusModel().focus(0);
-        // Start inline editing on the Category Code column.
-        categoryTable.edit(0, colCategoryCode);
+        categoryTable.edit(0, colCategory);
     }
 
     @FXML
     private void deleteCategory() {
         Category selected = categoryTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
-            if (categoryService.deleteCategory(selected.getCategoryCode())) {
+            if (selected.getId() == 0) {
+                // It's a new unsaved row
+                categoryList.remove(selected);
+                newCategories.remove(selected);
+                return;
+            }
+            if (categoryService.deleteCategory(selected.getId())) {
                 categoryList.remove(selected);
                 newCategories.remove(selected);
             } else {

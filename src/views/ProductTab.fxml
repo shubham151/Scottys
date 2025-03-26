@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.control.*?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.collections.FXCollections?>
-<?import java.lang.String?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Button?>
 <AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controllers.ProductController">
     <children>
         <VBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10"
@@ -15,7 +18,9 @@
                     <TextField fx:id="searchField" promptText="Search by product name"/>
                     <Label text="Category:"/>
                     <ComboBox fx:id="categoryDropdown" prefWidth="150"/>
-                    <Button fx:id="btnImport" text="Import CSV"/>
+                    <Label text="Subcategory:"/>
+                    <ComboBox fx:id="subcategoryDropdown" prefWidth="150"/>
+                    <Button fx:id="btnImport" text="Import CSV" onAction="#importCSV" />
                     <Button fx:id="btnAddProduct" text="Add Product" onAction="#addProduct"/>
                     <Button fx:id="btnDeleteProduct" text="Delete Product" onAction="#deleteProduct"/>
                 </HBox>
@@ -45,24 +50,20 @@
                                 </VBox>
                             </graphic>
                         </TableColumn>
-                        <TableColumn fx:id="colTaxRate1" text="Tax Rate 1"/>
-                        <TableColumn fx:id="colTaxRate2" text="Tax Rate 2"/>
-                        <TableColumn fx:id="colTaxRate3" text="Tax Rate 3"/>
-                        <TableColumn fx:id="colTaxRate4" text="Tax Rate 4"/>
+                        <TableColumn fx:id="colSubcategory" minWidth="200">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Subcategory"/>
+                                    <TextField fx:id="tfSubcategoryFilter" promptText="Filter"/>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
                         <TableColumn fx:id="colPrice" minWidth="200">
                             <graphic>
                                 <VBox spacing="2">
                                     <Label text="Cost"/>
                                     <HBox spacing="2">
-                                        <ComboBox fx:id="cbPriceComparator" promptText="Op">
-                                            <items>
-                                                <FXCollections fx:factory="observableArrayList">
-                                                    <String fx:value="&gt;"/>
-                                                    <String fx:value="&lt;"/>
-                                                    <String fx:value="="/>
-                                                </FXCollections>
-                                            </items>
-                                        </ComboBox>
+                                        <ComboBox fx:id="cbPriceComparator" promptText="Op"/>
                                         <TextField fx:id="tfPriceFilter" promptText="Value"/>
                                     </HBox>
                                 </VBox>

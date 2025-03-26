@@ -8,14 +8,14 @@ import java.util.List;
 
 public class CategoryService {
 
-    public void addCategory(String categoryCode, String categoryName) {
-        String query = "INSERT INTO Category (category_code, category_name) VALUES (?, ?) " +
-                "ON CONFLICT(category_code) DO NOTHING";
-
+    // Adds a new category record.
+    public void addCategory(String category, String subcategory) {
+        String query = "INSERT INTO Category (category, subcategory) VALUES (?, ?) " +
+                "ON CONFLICT(category, subcategory) DO NOTHING";
         try (Connection conn = DatabaseHelper.connect();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, categoryCode);
-            pstmt.setString(2, categoryName);
+            pstmt.setString(1, category);
+            pstmt.setString(2, subcategory);
             pstmt.executeUpdate();
         } catch (SQLException e) {
             System.out.println("Error adding category: " + e.getMessage());
@@ -25,8 +25,9 @@ public class CategoryService {
     // Returns a page of categories based on filter criteria.
     public List<Category> getCategories(int limit, int offset, String filterQuery, List<Object> filterParams) {
         List<Category> categories = new ArrayList<>();
-        String query = "SELECT category_code, category_name FROM Category WHERE 1=1 " +
-                filterQuery + " ORDER BY category_name LIMIT ? OFFSET ?";
+        // Updated query now selects the id along with category and subcategory.
+        String query = "SELECT id, category, subcategory FROM Category WHERE 1=1 " +
+                filterQuery + " ORDER BY category, subcategory LIMIT ? OFFSET ?";
         try (Connection conn = DatabaseHelper.connect();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             int paramIndex = 1;
@@ -39,9 +40,11 @@ public class CategoryService {
             pstmt.setInt(paramIndex, offset);
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
+                // Create a Category with id, category, and subcategory.
                 categories.add(new Category(
-                        rs.getString("category_code"),
-                        rs.getString("category_name")
+                        rs.getInt("id"),
+                        rs.getString("category"),
+                        rs.getString("subcategory")
                 ));
             }
         } catch (SQLException e) {
@@ -50,20 +53,29 @@ public class CategoryService {
         return categories;
     }
 
-    // Convenience method: get all categories (without paging)
+    // Convenience method: get all categories.
     public List<Category> getAllCategories() {
         return getCategories(100000, 0, "", null);
     }
 
     // Inserts a new category.
     public boolean insertCategory(Category category) {
-        String query = "INSERT INTO Category (category_code, category_name) VALUES (?, ?)";
+        String query = "INSERT INTO Category (category, subcategory) VALUES (?, ?)";
         try (Connection conn = DatabaseHelper.connect();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, category.getCategoryCode());
-            pstmt.setString(2, category.getCategoryName());
+             PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, category.getCategory());
+            pstmt.setString(2, category.getSubcategory());
             int rows = pstmt.executeUpdate();
-            return rows > 0;
+            if (rows > 0) {
+                // Retrieve the generated id and set it in the Category model.
+                ResultSet rs = pstmt.getGeneratedKeys();
+                if (rs.next()) {
+                    category.setId(rs.getInt(1));
+                }
+                return true;
+            } else {
+                return false;
+            }
         } catch (SQLException e) {
             System.out.println("Error inserting category: " + e.getMessage());
             return false;
@@ -71,12 +83,14 @@ public class CategoryService {
     }
 
     // Updates an existing category.
+    // This method updates both fields (in case the main category is also allowed to change).
     public boolean updateCategory(Category category) {
-        String query = "UPDATE Category SET category_name = ? WHERE category_code = ?";
+        String query = "UPDATE Category SET category = ?, subcategory = ? WHERE id = ?";
         try (Connection conn = DatabaseHelper.connect();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, category.getCategoryName());
-            pstmt.setString(2, category.getCategoryCode());
+            pstmt.setString(1, category.getCategory());
+            pstmt.setString(2, category.getSubcategory());
+            pstmt.setInt(3, category.getId());
             int rows = pstmt.executeUpdate();
             return rows > 0;
         } catch (SQLException e) {
@@ -85,12 +99,12 @@ public class CategoryService {
         }
     }
 
-    // Deletes a category.
-    public boolean deleteCategory(String categoryCode) {
-        String query = "DELETE FROM Category WHERE category_code = ?";
+    // Deletes a category based on its id.
+    public boolean deleteCategory(int id) {
+        String query = "DELETE FROM Category WHERE id = ?";
         try (Connection conn = DatabaseHelper.connect();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, categoryCode);
+            pstmt.setInt(1, id);
             int rows = pstmt.executeUpdate();
             return rows > 0;
         } catch (SQLException e) {

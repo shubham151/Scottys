@@ -6,6 +6,7 @@ import models.AnalyticsData;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -13,27 +14,48 @@ import java.util.stream.Collectors;
 
 public class AnalyticsService {
 
-    public List<AnalyticsData> getAnalyticsData(LocalDate fromDate, LocalDate toDate, List<String> categories) {
+    public List<AnalyticsData> getAnalyticsData(LocalDate fromDate, LocalDate toDate,
+                                                List<String> categories, List<String> subcategories) {
+
         List<AnalyticsData> analyticsData = new ArrayList<>();
 
-        boolean selectAll = categories.contains("ALL");
-        String categoryFilter = selectAll ? "" :
-                "AND c.category_name IN (" +
-                        String.join(",", categories.stream().map(c -> "?").toArray(String[]::new)) +
-                        ")";
+        boolean selectAllCats = categories.contains("ALL");
+        boolean selectAllSubcats = subcategories.contains("ALL");
 
-        // Updated ORDER BY clause: order by category name ascending and then by total_quantity descending.
-        String query = "SELECT p.item_number, p.label, c.category_name, p.price AS cost, s.price AS retail, " +
+        StringBuilder filterClause = new StringBuilder();
+        List<String> queryParams = new ArrayList<>();
+
+        if (!selectAllCats && !selectAllSubcats) {
+            List<String> conditions = new ArrayList<>();
+            for (String cat : categories) {
+                for (String sub : subcategories) {
+                    conditions.add("(p.category = ? AND p.subcategory = ?)");
+                    queryParams.add(cat);
+                    queryParams.add(sub);
+                }
+            }
+            filterClause.append("AND (").append(String.join(" OR ", conditions)).append(")");
+        } else if (!selectAllCats) {
+            String placeholders = String.join(",", Collections.nCopies(categories.size(), "?"));
+            filterClause.append("AND p.category IN (").append(placeholders).append(")");
+            queryParams.addAll(categories);
+        } else if (!selectAllSubcats) {
+            String placeholders = String.join(",", Collections.nCopies(subcategories.size(), "?"));
+            filterClause.append("AND p.subcategory IN (").append(placeholders).append(")");
+            queryParams.addAll(subcategories);
+        }
+
+        String query = "SELECT p.item_number, p.label, p.category, p.subcategory, " +
+                "p.price AS cost, s.price AS retail, " +
                 "SUM(s.quantity) AS total_quantity, " +
                 "ROUND(SUM(s.quantity * p.price), 2) AS total_cost, " +
                 "ROUND(SUM(s.quantity * s.price), 2) AS total_retail " +
                 "FROM Sales s " +
                 "JOIN Product p ON s.item_number = p.item_number " +
-                "JOIN Category c ON p.category_id = c.id " +
-                "WHERE (s.from_date >= ? AND s.to_date <= ?) " +
-                categoryFilter + " " +
-                "GROUP BY p.item_number, p.label, c.category_name, p.price " +
-                "ORDER BY c.category_name ASC, total_quantity DESC";
+                "JOIN Category c on (c.category=p.category AND c.subcategory=p.subcategory) " +
+                "WHERE (s.from_date >= ? AND s.to_date <= ?) " + filterClause + " " +
+                "GROUP BY p.item_number " +
+                "ORDER BY total_quantity DESC, p.label, p.category ASC, p.subcategory ASC";
 
         try (Connection conn = DatabaseHelper.connect();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -42,21 +64,20 @@ public class AnalyticsService {
             pstmt.setDate(2, java.sql.Date.valueOf(toDate));
 
             int paramIndex = 3;
-            if (!selectAll) {
-                for (String category : categories) {
-                    pstmt.setString(paramIndex++, category);
-                }
+            for (String param : queryParams) {
+                pstmt.setString(paramIndex++, param);
             }
 
-            System.out.println("Executing Query: " + query);
-            System.out.println("With Parameters: " + categories);
+            System.out.println("Running SQL: " + query);
+            System.out.println("With Params: " + queryParams);
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 analyticsData.add(new AnalyticsData(
                         rs.getInt("item_number"),
                         rs.getString("label"),
-                        rs.getString("category_name"),
+                        rs.getString("category"),
+                        rs.getString("subcategory"),
                         rs.getDouble("cost"),
                         rs.getDouble("retail"),
                         rs.getDouble("total_cost"),
@@ -68,59 +89,173 @@ public class AnalyticsService {
             System.err.println("Error fetching analytics data: " + e.getMessage());
         }
 
-        // Group the product-level rows by category and add a subtotal row for each category.
+
         List<AnalyticsData> finalData = new ArrayList<>();
         Map<String, List<AnalyticsData>> grouped = analyticsData.stream()
-                .collect(Collectors.groupingBy(AnalyticsData::getCategory));
+                .collect(Collectors.groupingBy(a -> a.getCategory() + " - " + a.getSubcategory()));
 
-        // Sort the category names in ascending order.
-        List<String> sortedCategories = new ArrayList<>(grouped.keySet());
-        sortedCategories.sort(String::compareTo);
-
-        for (String cat : sortedCategories) {
-            List<AnalyticsData> group = grouped.get(cat);
-            // Ensure each group is sorted by quantity descending.
+        for (String key : grouped.keySet().stream().sorted().toList()) {
+            List<AnalyticsData> group = grouped.get(key);
             group.sort((a, b) -> Integer.compare(b.getQuantity(), a.getQuantity()));
-            // Add all product rows for this category.
             finalData.addAll(group);
 
-            // Compute subtotals for the category.
             int subtotalQty = group.stream().mapToInt(AnalyticsData::getQuantity).sum();
-            double subtotalTotalCost = group.stream().mapToDouble(AnalyticsData::getTotalCost).sum();
-            double subtotalTotalRetail = group.stream().mapToDouble(AnalyticsData::getTotalRetail).sum();
-            // Create a subtotal row (itemNumber = -1, label = "Sub Total").
-            double roundedSubtotalTotalCost = new BigDecimal(subtotalTotalCost)
-                    .setScale(2, RoundingMode.HALF_UP)
-                    .doubleValue();
-            double roundedSubtotalTotalRetail = new BigDecimal(subtotalTotalRetail)
-                    .setScale(2, RoundingMode.HALF_UP)
-                    .doubleValue();
-            AnalyticsData subtotal = new AnalyticsData(-1, "Sub Total", cat, 0.0, 0.0, roundedSubtotalTotalCost, roundedSubtotalTotalRetail, subtotalQty);
-            finalData.add(subtotal);
+            double subtotalCost = group.stream().mapToDouble(AnalyticsData::getTotalCost).sum();
+            double subtotalRetail = group.stream().mapToDouble(AnalyticsData::getTotalRetail).sum();
+
+            finalData.add(new AnalyticsData(-1, "Sub Total",
+                    group.get(0).getCategory(),
+                    group.get(0).getSubcategory(),
+                    0.0, 0.0,
+                    BigDecimal.valueOf(subtotalCost).setScale(2, RoundingMode.HALF_UP).doubleValue(),
+                    BigDecimal.valueOf(subtotalRetail).setScale(2, RoundingMode.HALF_UP).doubleValue(),
+                    subtotalQty));
         }
 
         return finalData;
     }
+
+    public static String buildQueryWithParams(String sql, List<Object> params) {
+        for (Object param : params) {
+            String value = (param instanceof String) ? "'" + param + "'" : String.valueOf(param);
+            sql = sql.replaceFirst("\\?", value);
+        }
+        return sql;
+    }
+
+    public Map<String, Integer> getQuantityBySubcategory(LocalDate fromDate, LocalDate toDate, List<String> selectedPairs) {
+        Map<String, Integer> distribution = new HashMap<>();
+
+        boolean selectAll = selectedPairs.contains("ALL");
+        StringBuilder whereClause = new StringBuilder();
+
+        if (!selectAll && !selectedPairs.isEmpty()) {
+            List<String> conditions = new ArrayList<>();
+            for (int i = 0; i < selectedPairs.size(); i++) {
+                conditions.add("(p.category = ? AND p.subcategory = ?)");
+            }
+            whereClause.append("AND (").append(String.join(" OR ", conditions)).append(")");
+        }
+
+        String query = "SELECT p.subcategory, SUM(s.quantity) AS totalQty " +
+                "FROM Sales s " +
+                "JOIN Product p ON s.item_number = p.item_number " +
+                "WHERE s.from_date >= ? AND s.to_date <= ? " +
+                whereClause + " " +
+                "GROUP BY p.subcategory";
+
+        try (Connection conn = DatabaseHelper.connect();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setDate(1, java.sql.Date.valueOf(fromDate));
+            pstmt.setDate(2, java.sql.Date.valueOf(toDate));
+
+            int paramIndex = 3;
+            if (!selectAll && !selectedPairs.isEmpty()) {
+                for (String pair : selectedPairs) {
+                    String[] parts = pair.split(" - ");
+                    pstmt.setString(paramIndex++, parts[0]); // category
+                    pstmt.setString(paramIndex++, parts[1]); // subcategory
+                }
+            }
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                String subcategory = rs.getString("subcategory");
+                int totalQty = rs.getInt("totalQty");
+                distribution.put(subcategory, totalQty);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error fetching subcategory quantity distribution: " + e.getMessage());
+        }
+
+        return distribution;
+    }
+
+
+    public Map<String, Map<String, Integer>> getSalesTrendByCategory(LocalDate fromDate, LocalDate toDate, String category) {
+        Map<String, Map<String, Integer>> trendData = new HashMap<>();
+        String query = "SELECT p.category, s.from_date, SUM(s.quantity) as qty " +
+                "FROM Sales s " +
+                "JOIN Product p ON s.item_number = p.item_number " +
+                "WHERE s.from_date >= ? AND s.to_date <= ? AND p.category = ? " +
+                "GROUP BY p.category, s.from_date " +
+                "ORDER BY p.category, s.from_date";
+
+        try (Connection conn = DatabaseHelper.connect();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setDate(1, java.sql.Date.valueOf(fromDate));
+            pstmt.setDate(2, java.sql.Date.valueOf(toDate));
+            pstmt.setString(3, category);
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                String cat = rs.getString("category");
+                LocalDate date = rs.getDate("from_date").toLocalDate();
+                int qty = rs.getInt("qty");
+
+                trendData.computeIfAbsent(cat, k -> new HashMap<>())
+                        .put(date.toString(), qty);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error in getSalesTrendByCategory: " + e.getMessage());
+        }
+        return trendData;
+    }
+
+    public Map<String, Map<String, Integer>> getSalesTrendBySubcategory(LocalDate fromDate, LocalDate toDate, String subcategory) {
+        Map<String, Map<String, Integer>> trendData = new HashMap<>();
+        String query = "SELECT p.subcategory, s.from_date, SUM(s.quantity) as qty " +
+                "FROM Sales s " +
+                "JOIN Product p ON s.item_number = p.item_number " +
+                "WHERE s.from_date >= ? AND s.to_date <= ? AND p.subcategory = ? " +
+                "GROUP BY p.subcategory, s.from_date " +
+                "ORDER BY p.subcategory, s.from_date";
+
+        try (Connection conn = DatabaseHelper.connect();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setDate(1, java.sql.Date.valueOf(fromDate));
+            pstmt.setDate(2, java.sql.Date.valueOf(toDate));
+            pstmt.setString(3, subcategory);
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                String subcat = rs.getString("subcategory");
+                LocalDate date = rs.getDate("from_date").toLocalDate();
+                int qty = rs.getInt("qty");
+
+                trendData.computeIfAbsent(subcat, k -> new HashMap<>())
+                        .put(date.toString(), qty);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error in getSalesTrendBySubcategory: " + e.getMessage());
+        }
+        return trendData;
+    }
+
 
     public List<AnalyticsData> getWeeklyAnalyticsData(LocalDate fromDate, LocalDate toDate, List<String> categories, List<String> weekRanges) {
         List<AnalyticsData> analyticsDataList = new ArrayList<>();
 
         boolean selectAll = categories.contains("ALL");
         String categoryFilter = selectAll ? "" :
-                "AND c.category_name IN (" +
+                "AND c.category IN (" +
                         String.join(",", categories.stream().map(c -> "?").toArray(String[]::new)) +
                         ")";
 
-        String query = "SELECT p.item_number, p.label, c.category_name, p.price as cost, s.price as retail, " +
+        String query = "SELECT p.item_number, p.label, c.category, p.price as cost, s.price as retail, " +
                 "s.quantity, s.from_date, s.to_date, " +
                 "ROUND(SUM(s.quantity * p.price), 2) AS total_cost, " +
                 "ROUND(SUM(s.quantity * s.price), 2) AS total_retail " +
                 "FROM Sales s " +
                 "JOIN Product p ON s.item_number = p.item_number " +
-                "JOIN Category c ON p.category_id = c.id " +
+                "JOIN Category c ON p.category = c.category " +
                 "WHERE (s.from_date >= ? AND s.to_date <= ?) " + categoryFilter + " " +
-                "GROUP BY p.item_number, p.label, c.category_name, p.price, s.quantity, s.from_date, s.to_date " +
-                "ORDER BY s.from_date, p.category_id, total_quantity DESC";
+                "GROUP BY p.item_number, p.label, c.category, p.price, s.quantity, s.from_date, s.to_date " +
+                "ORDER BY s.from_date, p.category, total_quantity DESC";
 
         try (Connection conn = DatabaseHelper.connect();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -141,7 +276,7 @@ public class AnalyticsService {
             while (rs.next()) {
                 int itemNumber = rs.getInt("item_number");
                 String label = rs.getString("label");
-                String category = rs.getString("category_name");
+                String category = rs.getString("category");
                 double cost = rs.getDouble("cost");
                 double retail = rs.getDouble("retail");
                 double total_cost = rs.getDouble("total_cost");
@@ -201,8 +336,8 @@ public class AnalyticsService {
         String query = "SELECT p.label, SUM(s.quantity) as totalQty " +
                 "FROM Sales s " +
                 "JOIN Product p ON s.item_number = p.item_number " +
-                "JOIN Category c ON p.category_id = c.id " +
-                "WHERE s.from_date >= ? AND s.to_date <= ? AND c.category_name = ? " +
+                "JOIN Category c ON p.category = c.category " +
+                "WHERE s.from_date >= ? AND s.to_date <= ? AND c.category = ? " +
                 "GROUP BY p.label";
 
         try (Connection conn = DatabaseHelper.connect();
@@ -229,8 +364,8 @@ public class AnalyticsService {
         String query = "SELECT p.label, s.from_date, SUM(s.quantity) as qty " +
                 "FROM Sales s " +
                 "JOIN Product p ON s.item_number = p.item_number " +
-                "JOIN Category c ON p.category_id = c.id " +
-                "WHERE s.from_date >= ? AND s.to_date <= ? AND c.category_name = ? " +
+                "JOIN Category c ON p.category = c.category " +
+                "WHERE s.from_date >= ? AND s.to_date <= ? AND c.category = ? " +
                 "GROUP BY p.label, s.from_date " +
                 "ORDER BY p.label, s.from_date";
 
@@ -257,23 +392,22 @@ public class AnalyticsService {
         return trendData;
     }
 
-    public Map<String, Integer> getQuantityByCategory(LocalDate fromDate, LocalDate toDate, List<String> categories) {
+    public Map<String, Integer> getQuantityByCategory(LocalDate fromDate, LocalDate toDate, List<String> selectedCategories) {
         Map<String, Integer> distribution = new HashMap<>();
-        boolean selectAll = categories.contains("ALL");
+        boolean selectAll = selectedCategories.contains("ALL");
+
         String categoryFilter = "";
         if (!selectAll) {
-            categoryFilter = "AND c.category_name IN (" +
-                    String.join(",", categories.stream().map(c -> "?").toArray(String[]::new)) +
+            categoryFilter = "AND p.category IN (" +
+                    String.join(",", selectedCategories.stream().map(c -> "?").toArray(String[]::new)) +
                     ")";
         }
 
-        String query = "SELECT c.category_name, SUM(s.quantity) AS totalQty " +
+        String query = "SELECT p.category, SUM(s.quantity) AS totalQty " +
                 "FROM Sales s " +
                 "JOIN Product p ON s.item_number = p.item_number " +
-                "JOIN Category c ON p.category_id = c.id " +
                 "WHERE s.from_date >= ? AND s.to_date <= ? " +
-                categoryFilter + " " +
-                "GROUP BY c.category_name";
+                categoryFilter + " GROUP BY p.category";
 
         try (Connection conn = DatabaseHelper.connect();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -283,21 +417,24 @@ public class AnalyticsService {
 
             int paramIndex = 3;
             if (!selectAll) {
-                for (String cat : categories) {
-                    pstmt.setString(paramIndex++, cat);
+                for (String cat : selectedCategories) {
+                    pstmt.setString(paramIndex++, cat.split(" - ")[0]); // only category part
                 }
             }
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                String categoryName = rs.getString("category_name");
-                int totalQty = rs.getInt("totalQty");
-                distribution.put(categoryName, totalQty);
+                String category = rs.getString("category");
+                int quantity = rs.getInt("totalQty");
+                distribution.put(category, quantity);
             }
+
         } catch (SQLException e) {
-            System.err.println("Error fetching quantity by category: " + e.getMessage());
+            System.err.println("Error in getQuantityByCategory: " + e.getMessage());
         }
+
         return distribution;
     }
+
 
 }

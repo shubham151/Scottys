@@ -10,7 +10,7 @@ import java.util.List;
 public class SalesService {
     public List<Sale> getAllSales() {
         List<Sale> sales = new ArrayList<>();
-        String query = "SELECT item_number, quantity, price, from_date, to_date FROM Sales";
+        String query = "SELECT item_number, quantity, price, from_date, to_date, store FROM Sales";
 
         try (Connection conn = DatabaseHelper.connect();
              Statement stmt = conn.createStatement();
@@ -22,7 +22,8 @@ public class SalesService {
                         rs.getInt("quantity"),
                         rs.getDouble("price"),
                         rs.getDate("from_date").toLocalDate(),
-                        rs.getDate("to_date").toLocalDate()
+                        rs.getDate("to_date").toLocalDate(),
+                        rs.getString("store")
                 ));
             }
         } catch (SQLException e) {
@@ -31,3 +32,4 @@ public class SalesService {
         return sales;
     }
 }
+

@@ -1,11 +1,11 @@
 package controllers;
 
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import models.AnalyticsData;
@@ -17,311 +17,157 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class AnalyticsController {
+    public TextField tfAnalyticsItemNumberFilter;
     @FXML private DatePicker fromDatePicker;
     @FXML private DatePicker toDatePicker;
     @FXML private ComboBox<String> categoryDropdown;
+    @FXML private ComboBox<String> subcategoryDropdown;
     @FXML private TableView<AnalyticsData> analyticsTable;
     @FXML private TableColumn<AnalyticsData, Integer> colItemNumber;
     @FXML private TableColumn<AnalyticsData, String> colLabel;
     @FXML private TableColumn<AnalyticsData, String> colCategory;
+    @FXML private TableColumn<AnalyticsData, String> colSubcategory;
     @FXML private TableColumn<AnalyticsData, Double> colCost;
     @FXML private TableColumn<AnalyticsData, Double> colRetail;
     @FXML private TableColumn<AnalyticsData, Double> colTotalCost;
     @FXML private TableColumn<AnalyticsData, Double> colTotalRetail;
     @FXML private TableColumn<AnalyticsData, Integer> colQuantity;
-    @FXML private TableColumn<AnalyticsData, Double> colSales;
-    // Header filters: for string/integer columns, use TextFields; for numeric columns, use comparator + TextField.
-    @FXML private TextField tfAnalyticsItemNumberFilter;
-    @FXML private TextField tfAnalyticsLabelFilter;
-    @FXML private TextField tfAnalyticsCategoryFilter;
-    @FXML private ComboBox<String> cbCostComparator;
-    @FXML private TextField tfCostFilter;
-    @FXML private ComboBox<String> cbRetailComparator;
-    @FXML private TextField tfRetailFilter;
-    @FXML private ComboBox<String> cbTotalCostComparator;
-    @FXML private TextField tfTotalCostFilter;
-    @FXML private ComboBox<String> cbTotalRetailComparator;
-    @FXML private TextField tfTotalRetailFilter;
-    @FXML private ComboBox<String> cbQuantityComparator;
-    @FXML private TextField tfQuantityAnalyticsFilter;
-    // Removed cbSalesComparator and tfSalesFilter as they're not used
 
     private final AnalyticsService analyticsService = new AnalyticsService();
     private final CategoryService categoryService = new CategoryService();
-    private FilteredList<AnalyticsData> filteredAnalyticsData;
-    // This list will hold the currently selected categories from the custom dropdown.
     private final ObservableList<String> selectedCategories = FXCollections.observableArrayList();
-    // List of checkboxes used in the custom dropdown.
+    private final ObservableList<String> selectedSubcategories = FXCollections.observableArrayList();
     private final List<CheckBox> categoryCheckBoxes = new ArrayList<>();
+    private final List<CheckBox> subcategoryCheckBoxes = new ArrayList<>();
 
     @FXML
     public void initialize() {
+        setupColumns();
+        setupCategoryDropdown();
+        setupSubcategoryDropdown();
+    }
+
+    private void setupColumns() {
         colItemNumber.setCellValueFactory(data -> data.getValue().itemNumberProperty().asObject());
         colLabel.setCellValueFactory(data -> data.getValue().labelProperty());
         colCategory.setCellValueFactory(data -> data.getValue().categoryProperty());
+        colSubcategory.setCellValueFactory(data -> data.getValue().subcategoryProperty());
         colCost.setCellValueFactory(data -> data.getValue().costProperty().asObject());
         colRetail.setCellValueFactory(data -> data.getValue().retailProperty().asObject());
         colTotalCost.setCellValueFactory(data -> data.getValue().totalCostProperty().asObject());
         colTotalRetail.setCellValueFactory(data -> data.getValue().totalRetailProperty().asObject());
         colQuantity.setCellValueFactory(data -> data.getValue().quantityProperty().asObject());
-
-        // Initialize filteredAnalyticsData with an empty list so that updateAnalyticsFilters() won't throw a NullPointerException.
-        filteredAnalyticsData = new FilteredList<>(FXCollections.observableArrayList(), a -> true);
-        analyticsTable.setItems(filteredAnalyticsData);
-
-        setupCategoryDropdown();
-
-        // Delay setting defaults until the scene is fully loaded.
-        javafx.application.Platform.runLater(() -> {
-            cbCostComparator.setValue("=");
-            cbRetailComparator.setValue("=");
-            cbTotalCostComparator.setValue("=");
-            cbTotalRetailComparator.setValue("=");
-            cbQuantityComparator.setValue("=");
-        });
-
-        setupAnalyticsHeaderFilters();
     }
 
-
-    /**
-     * Custom multi-select category dropdown that mimics the Charts dropdown.
-     * It creates a context menu with a VBox containing a search field and a ListView of checkboxes.
-     */
     private void setupCategoryDropdown() {
-        // Fetch available categories from the service.
-        List<String> categories = categoryService.getAllCategories()
-                .stream()
-                .map(Category::getCategoryName)
+        List<String> categories = categoryService.getAllCategories().stream()
+                .map(Category::getCategory)
+                .distinct()
+                .sorted()
                 .collect(Collectors.toList());
 
-        // Set default prompt.
-        categoryDropdown.setPromptText("Select Categories");
+        setupMultiSelectDropdown(categoryDropdown, categories, categoryCheckBoxes, selectedCategories, "Categories");
+    }
 
-        // Create a VBox container.
-        VBox categoryContainer = new VBox();
+    private void setupSubcategoryDropdown() {
+        List<String> subcategories = categoryService.getAllCategories().stream()
+                .map(Category::getSubcategory)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
 
-        // Create a search field for filtering.
+        setupMultiSelectDropdown(subcategoryDropdown, subcategories, subcategoryCheckBoxes, selectedSubcategories, "Subcategories");
+    }
+
+    private void setupMultiSelectDropdown(ComboBox<String> dropdown, List<String> options, List<CheckBox> checkboxes,
+                                          ObservableList<String> selectedList, String labelText) {
+        dropdown.setPromptText("Select " + labelText);
+        dropdown.setEditable(false);
+        dropdown.setVisibleRowCount(1);
+
+        VBox container = new VBox();
         TextField searchField = new TextField();
-        searchField.setPromptText("Search category...");
+        searchField.setPromptText("Search " + labelText.toLowerCase());
 
-        // Create a ListView for checkboxes.
-        ListView<CheckBox> categoryListView = new ListView<>();
-        categoryCheckBoxes.clear();
+        ListView<CheckBox> listView = new ListView<>();
+        checkboxes.clear();
 
-        // Create an "ALL" checkbox.
-        CheckBox allCheckBox = new CheckBox("ALL");
-        allCheckBox.setSelected(false);
-        allCheckBox.setOnAction(event -> {
-            boolean isSelected = allCheckBox.isSelected();
-            for (CheckBox cb : categoryCheckBoxes) {
-                cb.setSelected(isSelected);
-            }
-            updateSelectedCategories();
+        CheckBox allBox = new CheckBox("ALL");
+        allBox.setOnAction(e -> {
+            boolean selected = allBox.isSelected();
+            checkboxes.forEach(cb -> cb.setSelected(selected));
+            updateSelectedList(checkboxes, selectedList, dropdown);
         });
-        categoryListView.getItems().add(allCheckBox);
+        listView.getItems().add(allBox);
 
-        // Add each category as a checkbox.
-        for (String cat : categories) {
-            CheckBox checkBox = new CheckBox(cat);
-            checkBox.setSelected(false);
-            checkBox.setOnAction(event -> {
-                updateSelectedCategories();
-                if (!checkBox.isSelected()) {
-                    allCheckBox.setSelected(false);
-                }
+        for (String option : options) {
+            CheckBox cb = new CheckBox(option);
+            cb.setOnAction(e -> {
+                updateSelectedList(checkboxes, selectedList, dropdown);
+                if (!cb.isSelected()) allBox.setSelected(false);
             });
-            categoryCheckBoxes.add(checkBox);
-            categoryListView.getItems().add(checkBox);
+            checkboxes.add(cb);
+            listView.getItems().add(cb);
         }
 
-        // Add a listener to the search field to filter the checkboxes.
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            String filter = newVal.toLowerCase();
-            List<CheckBox> filtered = categoryCheckBoxes.stream()
-                    .filter(cb -> cb.getText().toLowerCase().contains(filter))
+            String term = newVal.toLowerCase();
+            List<CheckBox> filtered = checkboxes.stream()
+                    .filter(cb -> cb.getText().toLowerCase().contains(term))
                     .collect(Collectors.toList());
-            categoryListView.getItems().setAll(filtered);
-            // Re-add the "ALL" checkbox at the top.
-            categoryListView.getItems().add(0, allCheckBox);
+            listView.getItems().setAll(allBox);
+            listView.getItems().addAll(filtered);
         });
 
-        // Add the search field and the ListView to the container.
-        categoryContainer.getChildren().addAll(searchField, categoryListView);
+        container.getChildren().addAll(searchField, listView);
+        CustomMenuItem menuItem = new CustomMenuItem(container);
+        menuItem.setHideOnClick(false);
 
-        // Wrap the container in a CustomMenuItem.
-        CustomMenuItem customMenuItem = new CustomMenuItem(categoryContainer);
-        customMenuItem.setHideOnClick(false);
-
-        // Create a ContextMenu and attach it to the dropdown.
-        ContextMenu contextMenu = new ContextMenu(customMenuItem);
-        categoryDropdown.setOnMouseClicked(event -> {
-            contextMenu.show(categoryDropdown,
-                    categoryDropdown.localToScreen(0, categoryDropdown.getHeight()).getX(),
-                    categoryDropdown.localToScreen(0, categoryDropdown.getHeight()).getY());
+        ContextMenu contextMenu = new ContextMenu(menuItem);
+        dropdown.setOnMouseClicked(e -> {
+            contextMenu.show(dropdown,
+                    dropdown.localToScreen(0, dropdown.getHeight()).getX(),
+                    dropdown.localToScreen(0, dropdown.getHeight()).getY());
         });
 
-        // Update the button cell to display the selected categories.
-        categoryDropdown.setButtonCell(new ListCell<>() {
+        dropdown.setButtonCell(new ListCell<>() {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                setText(selectedCategories.isEmpty() ? "Select Categories" : selectedCategories.toString());
+                setText(selectedList.isEmpty() ? "Select " + labelText : String.join(", ", selectedList));
             }
         });
     }
 
-    /**
-     * Updates the list of selected categories based on the checkbox states.
-     */
-    private void updateSelectedCategories() {
-        selectedCategories.clear();
-        for (CheckBox cb : categoryCheckBoxes) {
-            if (cb.isSelected()) {
-                selectedCategories.add(cb.getText());
-            }
-        }
-        categoryDropdown.setPromptText(selectedCategories.isEmpty() ? "Select Categories" : selectedCategories.toString());
+    private void updateSelectedList(List<CheckBox> checkboxes, ObservableList<String> list, ComboBox<String> dropdown) {
+        list.clear();
+        checkboxes.stream().filter(CheckBox::isSelected).forEach(cb -> list.add(cb.getText()));
+        dropdown.setPromptText(list.isEmpty() ? dropdown.getId() : String.join(", ", list));
     }
 
     @FXML
     private void applyFilters() {
         LocalDate fromDate = fromDatePicker.getValue();
         LocalDate toDate = toDatePicker.getValue();
-        // If no date range or no categories selected, clear the table.
-        if (fromDate == null || toDate == null || selectedCategories.isEmpty()) {
-            analyticsTable.getItems().clear();
-            return;
-        }
-        // Pass the selected categories (which now come from the custom dropdown) to the service.
-        List<AnalyticsData> data = analyticsService.getAnalyticsData(fromDate, toDate, selectedCategories);
-        filteredAnalyticsData = new FilteredList<>(FXCollections.observableArrayList(data), a -> true);
-        analyticsTable.setItems(filteredAnalyticsData);
-        setupAnalyticsHeaderFilters();
+
+        if (fromDate == null || toDate == null) return;
+        if (selectedCategories.isEmpty() || selectedSubcategories.isEmpty()) return;
+
+        List<AnalyticsData> data = analyticsService.getAnalyticsData(fromDate, toDate, selectedCategories, selectedSubcategories);
+        analyticsTable.setItems(FXCollections.observableArrayList(data));
+        analyticsTable.setRowFactory(tv -> new TableRow<AnalyticsData>() {{
+            itemProperty().addListener((obs, oldItem, newItem) -> setStyle(newItem != null && "Sub Total".equals(newItem.getLabel()) ? "-fx-background-color: #d4fcd4;" : ""));
+        }});
+
     }
 
-    private void setupAnalyticsHeaderFilters() {
-        tfAnalyticsItemNumberFilter.textProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        tfAnalyticsLabelFilter.textProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        tfAnalyticsCategoryFilter.textProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        cbCostComparator.valueProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        tfCostFilter.textProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        cbRetailComparator.valueProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        tfRetailFilter.textProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        cbTotalCostComparator.valueProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        tfTotalCostFilter.textProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        cbTotalRetailComparator.valueProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        tfTotalRetailFilter.textProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        cbQuantityComparator.valueProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-        tfQuantityAnalyticsFilter.textProperty().addListener((obs, oldVal, newVal) -> updateAnalyticsFilters());
-    }
 
-    private void updateAnalyticsFilters() {
-        filteredAnalyticsData.setPredicate(a -> {
-            boolean matchesItem = true;
-            String itemFilter = tfAnalyticsItemNumberFilter.getText().trim();
-            if (!itemFilter.isEmpty()) {
-                try {
-                    int filterVal = Integer.parseInt(itemFilter);
-                    matchesItem = a.getItemNumber() == filterVal;
-                } catch (NumberFormatException e) {
-                    matchesItem = false;
-                }
-            }
-            String labelFilter = tfAnalyticsLabelFilter.getText().trim().toLowerCase();
-            boolean matchesLabel = labelFilter.isEmpty() || a.getLabel().toLowerCase().contains(labelFilter);
-            String categoryFilter = tfAnalyticsCategoryFilter.getText().trim().toLowerCase();
-            boolean matchesCategory = categoryFilter.isEmpty() || a.getCategory().toLowerCase().contains(categoryFilter);
-            boolean matchesCost = true;
-            String costFilter = tfCostFilter.getText().trim();
-            String costComp = cbCostComparator.getValue();
-            if (costComp == null || costComp.isEmpty()) costComp = "=";
-            if (!costFilter.isEmpty()) {
-                try {
-                    double filterCost = Double.parseDouble(costFilter);
-                    switch (costComp) {
-                        case ">": matchesCost = a.getCost() > filterCost; break;
-                        case "<": matchesCost = a.getCost() < filterCost; break;
-                        case "=": matchesCost = Math.abs(a.getCost() - filterCost) < 0.001; break;
-                    }
-                } catch (NumberFormatException e) {
-                    matchesCost = false;
-                }
-            }
-            boolean matchesRetail = true;
-            String retailFilter = tfRetailFilter.getText().trim();
-            String retailComp = cbRetailComparator.getValue();
-            if (retailComp == null || retailComp.isEmpty()) retailComp = "=";
-            if (!retailFilter.isEmpty()) {
-                try {
-                    double filterRetail = Double.parseDouble(retailFilter);
-                    switch (retailComp) {
-                        case ">": matchesRetail = a.getRetail() > filterRetail; break;
-                        case "<": matchesRetail = a.getRetail() < filterRetail; break;
-                        case "=": matchesRetail = Math.abs(a.getRetail() - filterRetail) < 0.001; break;
-                    }
-                } catch (NumberFormatException e) {
-                    matchesRetail = false;
-                }
-            }
-            boolean matchesTotalCost = true;
-            String totalCostFilter = tfTotalCostFilter.getText().trim();
-            String totalCostComp = cbTotalCostComparator.getValue();
-            if (totalCostComp == null || totalCostComp.isEmpty()) totalCostComp = "=";
-            if (!totalCostFilter.isEmpty()) {
-                try {
-                    double filterTotalCost = Double.parseDouble(totalCostFilter);
-                    switch (totalCostComp) {
-                        case ">": matchesTotalCost = a.getTotalCost() > filterTotalCost; break;
-                        case "<": matchesTotalCost = a.getTotalCost() < filterTotalCost; break;
-                        case "=": matchesTotalCost = Math.abs(a.getTotalCost() - filterTotalCost) < 0.001; break;
-                    }
-                } catch (NumberFormatException e) {
-                    matchesTotalCost = false;
-                }
-            }
-            boolean matchesTotalRetail = true;
-            String totalRetailFilter = tfTotalRetailFilter.getText().trim();
-            String totalRetailComp = cbTotalRetailComparator.getValue();
-            if (totalRetailComp == null || totalRetailComp.isEmpty()) totalRetailComp = "=";
-            if (!totalRetailFilter.isEmpty()) {
-                try {
-                    double filterTotalRetail = Double.parseDouble(totalRetailFilter);
-                    switch (totalRetailComp) {
-                        case ">": matchesTotalRetail = a.getTotalRetail() > filterTotalRetail; break;
-                        case "<": matchesTotalRetail = a.getTotalRetail() < filterTotalRetail; break;
-                        case "=": matchesTotalRetail = Math.abs(a.getTotalRetail() - filterTotalRetail) < 0.001; break;
-                    }
-                } catch (NumberFormatException e) {
-                    matchesTotalRetail = false;
-                }
-            }
-            boolean matchesQuantity = true;
-            String quantityFilter = tfQuantityAnalyticsFilter.getText().trim();
-            String quantityComp = cbQuantityComparator.getValue();
-            if (quantityComp == null || quantityComp.isEmpty()) quantityComp = "=";
-            if (!quantityFilter.isEmpty()) {
-                try {
-                    int filterQty = Integer.parseInt(quantityFilter);
-                    switch (quantityComp) {
-                        case ">": matchesQuantity = a.getQuantity() > filterQty; break;
-                        case "<": matchesQuantity = a.getQuantity() < filterQty; break;
-                        case "=": matchesQuantity = a.getQuantity() == filterQty; break;
-                    }
-                } catch (NumberFormatException e) {
-                    matchesQuantity = false;
-                }
-            }
-            return matchesItem && matchesLabel && matchesCategory && matchesCost &&
-                    matchesRetail && matchesTotalCost && matchesTotalRetail &&
-                    matchesQuantity;
-        });
-    }
+
+
 
     @FXML
     private void exportToCSV() {
@@ -337,13 +183,13 @@ public class AnalyticsController {
         if (file != null) {
             try (FileWriter writer = new FileWriter(file, false)) {
                 writer.write("\uFEFF");
-                writer.write("\"Item Number\",\"Label\",\"Category\",\"Price\",\"Quantity\",\"Sales\"\n");
+                writer.write("\"Item Number\",\"Label\",\"Category\",\"Cost\",\"Quantity\",\"Sales\"\n");
                 for (AnalyticsData data : currentData) {
                     writer.write(String.format("\"%d\",\"%s\",\"%s\",\"%.2f\",\"%d\",\"%.2f\"\n",
                             data.getItemNumber(),
                             data.getLabel().replace("\"", "\"\""),
-                            data.getCategory().replace("\"", "\"\""),
-                            data.getRetail(),
+                            (data.getCategory() + " - " + data.getSubcategory()).replace("\"", "\"\""),
+                            data.getRetail(),    // Assuming cost is retail in this context
                             data.getQuantity(),
                             data.getRetail() * data.getQuantity()));
                 }
@@ -353,6 +199,7 @@ public class AnalyticsController {
             }
         }
     }
+
 
     @FXML
     private void exportWeeklyCSV() {
@@ -393,7 +240,7 @@ public class AnalyticsController {
                     writer.write(String.format("\"%d\",\"%s\",\"%s\"",
                             data.getItemNumber(),
                             data.getLabel().replace("\"", "\"\""),
-                            data.getCategory().replace("\"", "\"\"")));
+                            (data.getCategory() + " - " + data.getSubcategory()).replace("\"", "\"\"")));
 
                     for (String week : weekRanges) {
                         if (data.getWeeklySales().containsKey(week)) {
@@ -419,17 +266,14 @@ public class AnalyticsController {
     private List<String> getWeekRanges(LocalDate startDate, LocalDate endDate) {
         List<String> weekRanges = new ArrayList<>();
         LocalDate currentStart = startDate;
-
         while (!currentStart.isAfter(endDate)) {
             LocalDate currentEnd = currentStart.plusDays(6);
             if (currentEnd.isAfter(endDate)) {
                 currentEnd = endDate;
             }
-
             weekRanges.add(currentStart + " to " + currentEnd);
             currentStart = currentEnd.plusDays(1);
         }
-
         return weekRanges;
     }
 

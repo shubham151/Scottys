@@ -1,28 +1,42 @@
 package models;
 
 public class Category {
-    private String categoryCode;
-    private String categoryName;
+    private int id;
+    private String category;
+    private String subcategory;
 
-    public Category(String categoryCode, String categoryName) {
-        this.categoryCode = categoryCode;
-        this.categoryName = categoryName;
+    public Category(int id, String category, String subcategory) {
+        this.id = id;
+        this.category = category;
+        this.subcategory = subcategory;
     }
 
-    public String getCategoryCode() {
-        return categoryCode;
+    // Convenience constructor if you don’t have an ID (like when adding new)
+    public Category(String category, String subcategory) {
+        this(0, category, subcategory);
     }
 
-    public String getCategoryName() {
-        return categoryName;
+    public int getId() {
+        return id;
     }
 
-    // Add setters so that editing is done in place.
-    public void setCategoryCode(String categoryCode) {
-        this.categoryCode = categoryCode;
+    public String getCategory() {
+        return category;
     }
 
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
+    public String getSubcategory() {
+        return subcategory;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public void setSubcategory(String subcategory) {
+        this.subcategory = subcategory;
     }
 }

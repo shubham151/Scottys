@@ -9,7 +9,6 @@ import models.Sale;
 import services.SalesService;
 import utils.CSVImporter;
 import javafx.stage.FileChooser;
-
 import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
@@ -22,6 +21,7 @@ public class SalesController {
     @FXML private TableColumn<Sale, Double> colPrice;
     @FXML private TableColumn<Sale, String> colFromDate;
     @FXML private TableColumn<Sale, String> colToDate;
+    @FXML private TableColumn<Sale, String> colStore; // New column for store
     @FXML private TextField tfSalesItemNumberFilter;
     @FXML private TextField tfQuantityFilter;
     @FXML private TextField tfSalesPriceFilter;
@@ -29,6 +29,7 @@ public class SalesController {
     @FXML private DatePicker dpFromDateFilter;
     @FXML private ComboBox<String> cbToDateComparator;
     @FXML private DatePicker dpToDateFilter;
+    @FXML private TextField tfStoreFilter;
 
     private final SalesService salesService = new SalesService();
     private FilteredList<Sale> filteredSales;
@@ -40,6 +41,7 @@ public class SalesController {
         colPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
         colFromDate.setCellValueFactory(new PropertyValueFactory<>("fromDate"));
         colToDate.setCellValueFactory(new PropertyValueFactory<>("toDate"));
+        colStore.setCellValueFactory(new PropertyValueFactory<>("store"));
         loadSales();
         setupFilters();
     }
@@ -58,6 +60,8 @@ public class SalesController {
         dpFromDateFilter.valueProperty().addListener((obs, oldVal, newVal) -> updateFilters());
         cbToDateComparator.valueProperty().addListener((obs, oldVal, newVal) -> updateFilters());
         dpToDateFilter.valueProperty().addListener((obs, oldVal, newVal) -> updateFilters());
+        tfStoreFilter.textProperty().addListener((obs, oldVal, newVal) -> updateFilters());
+
     }
 
     private void updateFilters() {
@@ -118,7 +122,13 @@ public class SalesController {
                     case "=": matchesToDate = sale.getToDate().equals(filterTo); break;
                 }
             }
-            return matchesItem && matchesQuantity && matchesPrice && matchesFromDate && matchesToDate;
+
+            String storeFilter = tfStoreFilter.getText().trim().toLowerCase();
+            boolean matchesStore = storeFilter.isEmpty() ||
+                    (sale.getStore() != null && sale.getStore().toLowerCase().contains(storeFilter));
+
+
+            return matchesItem && matchesQuantity && matchesPrice && matchesFromDate && matchesToDate && matchesStore;
         });
     }
 
