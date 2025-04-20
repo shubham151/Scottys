@@ -43,16 +43,35 @@ public class DatabaseHelper {
 //            stmt.execute("DROP TABLE IF EXISTS Product;");
 //            stmt.execute("DROP TABLE IF EXISTS Sales;");
 //            stmt.execute("DROP TABLE IF EXISTS Category;");
+//            stmt.execute("DROP TABLE IF EXISTS Store;");
 
             // Recreate tables
             createCategoryTable();
             createProductTable();
             createSalesTable();
+            createStoreTable();
 
         } catch (SQLException e) {
             System.err.println("Error resetting database: " + e.getMessage());
         }
     }
+
+
+    private static void createStoreTable() {
+        String sql = "CREATE TABLE IF NOT EXISTS Store (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "store_name TEXT, " +
+                "location TEXT" +
+                ")";
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            System.err.println("Error creating Store table: " + e.getMessage());
+        }
+    }
+
+
 
 
     private static void createProductTable() {

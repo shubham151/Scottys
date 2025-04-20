@@ -28,5 +28,11 @@
                 <fx:include source="ChartsTab.fxml"/>
             </content>
         </Tab>
+
+        <Tab fx:id="storeTab" text="Store">
+            <content>
+                <fx:include source="StoreTab.fxml"/>
+            </content>
+        </Tab>
     </tabs>
 </TabPane>

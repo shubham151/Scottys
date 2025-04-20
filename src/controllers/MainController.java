@@ -12,6 +12,8 @@ public class MainController {
     @FXML private Tab salesTab;
     @FXML private Tab analyticsTab;
     @FXML private Tab chartsTab;
+    @FXML private Tab storeTab;
+
 
     @FXML
     public void initialize() {

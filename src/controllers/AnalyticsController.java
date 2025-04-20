@@ -2,6 +2,7 @@ package controllers;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
@@ -74,14 +75,76 @@ public class AnalyticsController {
     }
 
     private void setupSubcategoryDropdown() {
-        List<String> subcategories = categoryService.getAllCategories().stream()
-                .map(Category::getSubcategory)
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
+        subcategoryDropdown.setPromptText("Select Subcategories");
+        subcategoryDropdown.setEditable(false);
+        subcategoryDropdown.setVisibleRowCount(1);
 
-        setupMultiSelectDropdown(subcategoryDropdown, subcategories, subcategoryCheckBoxes, selectedSubcategories, "Subcategories");
+        VBox container = new VBox();
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search subcategories");
+
+        ListView<CheckBox> listView = new ListView<>();
+        subcategoryCheckBoxes.clear();
+
+        CheckBox allBox = new CheckBox("ALL");
+        allBox.setOnAction(e -> {
+            boolean selected = allBox.isSelected();
+            subcategoryCheckBoxes.forEach(cb -> cb.setSelected(selected));
+            updateSelectedList(subcategoryCheckBoxes, selectedSubcategories, subcategoryDropdown);
+        });
+        listView.getItems().add(allBox);
+
+        selectedCategories.addListener((ListChangeListener<String>) change -> {
+            subcategoryCheckBoxes.clear();
+            listView.getItems().clear();
+            listView.getItems().add(allBox);
+
+            Set<String> filteredSubcats = categoryService.getAllCategories().stream()
+                    .filter(cat -> selectedCategories.contains(cat.getCategory()))
+                    .map(Category::getSubcategory)
+                    .collect(Collectors.toCollection(TreeSet::new));
+
+            for (String subcat : filteredSubcats) {
+                CheckBox cb = new CheckBox(subcat);
+                cb.setOnAction(e -> {
+                    updateSelectedList(subcategoryCheckBoxes, selectedSubcategories, subcategoryDropdown);
+                    if (!cb.isSelected()) allBox.setSelected(false);
+                });
+                subcategoryCheckBoxes.add(cb);
+                listView.getItems().add(cb);
+            }
+        });
+
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            String term = newVal.toLowerCase();
+            List<CheckBox> filtered = subcategoryCheckBoxes.stream()
+                    .filter(cb -> cb.getText().toLowerCase().contains(term))
+                    .collect(Collectors.toList());
+            listView.getItems().setAll(allBox);
+            listView.getItems().addAll(filtered);
+        });
+
+        container.getChildren().addAll(searchField, listView);
+        CustomMenuItem menuItem = new CustomMenuItem(container);
+        menuItem.setHideOnClick(false);
+        ContextMenu contextMenu = new ContextMenu(menuItem);
+
+        subcategoryDropdown.setOnMouseClicked(e -> {
+            contextMenu.show(subcategoryDropdown,
+                    subcategoryDropdown.localToScreen(0, subcategoryDropdown.getHeight()).getX(),
+                    subcategoryDropdown.localToScreen(0, subcategoryDropdown.getHeight()).getY());
+        });
+
+        subcategoryDropdown.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(selectedSubcategories.isEmpty() ? "Select Subcategories" : String.join(", ", selectedSubcategories));
+            }
+        });
     }
+
+
 
     private void setupMultiSelectDropdown(ComboBox<String> dropdown, List<String> options, List<CheckBox> checkboxes,
                                           ObservableList<String> selectedList, String labelText) {

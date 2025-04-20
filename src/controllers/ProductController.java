@@ -1,11 +1,13 @@
 package controllers;
 
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.util.converter.NumberStringConverter;
 import models.Category;
@@ -16,6 +18,7 @@ import utils.CSVImporter;
 import javafx.scene.control.cell.PropertyValueFactory;
 import java.io.File;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ProductController {
 
@@ -48,11 +51,16 @@ public class ProductController {
     private final ObservableList<Product> productsList = FXCollections.observableArrayList();
     private final List<Product> newProducts = new ArrayList<>();
     private final Map<String, List<String>> categorySubcategoryMap = new HashMap<>();
+    private final ObservableList<String> selectedCategories = FXCollections.observableArrayList();
+    private final ObservableList<String> selectedSubcategories = FXCollections.observableArrayList();
+    private final List<CheckBox> categoryCheckBoxes = new ArrayList<>();
+    private final List<CheckBox> subcategoryCheckBoxes = new ArrayList<>();
+
 
     @FXML
     public void initialize() {
         productTable.setEditable(true);
-        loadCategoriesForDropdown();
+        setupMultiSelectDropdown();
         setupTableColumns();
         loadInitialProducts();
         setupFilters();
@@ -109,46 +117,156 @@ public class ProductController {
         colStatus.setCellValueFactory(new PropertyValueFactory<>("recStatus"));
     }
 
-    private void loadCategoriesForDropdown() {
+    private void setupMultiSelectDropdown() {
         List<Category> allCategories = categoryService.getAllCategories();
-        Set<String> distinctCategories = new HashSet<>();
         categorySubcategoryMap.clear();
-
         for (Category cat : allCategories) {
-            distinctCategories.add(cat.getCategory());
-            categorySubcategoryMap
-                    .computeIfAbsent(cat.getCategory(), k -> new ArrayList<>())
-                    .add(cat.getSubcategory());
+            categorySubcategoryMap.computeIfAbsent(cat.getCategory(), k -> new ArrayList<>()).add(cat.getSubcategory());
         }
 
-        List<String> sortedCategories = new ArrayList<>(distinctCategories);
-        Collections.sort(sortedCategories);
-        categoryDropdown.setItems(FXCollections.observableArrayList(sortedCategories));
-
-        categoryDropdown.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && categorySubcategoryMap.containsKey(newVal)) {
-                List<String> subcats = categorySubcategoryMap.get(newVal);
-                subcategoryDropdown.setItems(FXCollections.observableArrayList(subcats));
+        categoryDropdown.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(selectedCategories.isEmpty() ? "Select Categories" : String.join(", ", selectedCategories));
             }
-            loadInitialProducts();
+        });
+        subcategoryDropdown.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(selectedSubcategories.isEmpty() ? "Select Subcategories" : String.join(", ", selectedSubcategories));
+            }
+        });
+
+        // CATEGORY DROPDOWN
+        VBox categoryContainer = new VBox();
+        TextField categorySearch = new TextField();
+        ListView<CheckBox> categoryListView = new ListView<>();
+        CheckBox allCategoryCheck = new CheckBox("ALL");
+        allCategoryCheck.setOnAction(e -> {
+            boolean selected = allCategoryCheck.isSelected();
+            categoryCheckBoxes.forEach(cb -> cb.setSelected(selected));
+            updateSelectedCategories();
+        });
+        categoryCheckBoxes.clear();
+        categoryListView.getItems().add(allCategoryCheck);
+        for (String cat : categorySubcategoryMap.keySet()) {
+            CheckBox cb = new CheckBox(cat);
+            cb.setOnAction(e -> {
+                updateSelectedCategories();
+                if (!cb.isSelected()) allCategoryCheck.setSelected(false);
+            });
+            categoryCheckBoxes.add(cb);
+            categoryListView.getItems().add(cb);
+        }
+        categorySearch.textProperty().addListener((obs, oldVal, newVal) -> {
+            String filter = newVal.toLowerCase();
+            List<CheckBox> filtered = categoryCheckBoxes.stream().filter(cb -> cb.getText().toLowerCase().contains(filter)).collect(Collectors.toList());
+            categoryListView.getItems().setAll(filtered);
+            categoryListView.getItems().add(0, allCategoryCheck);
+        });
+        categoryContainer.getChildren().addAll(categorySearch, categoryListView);
+        CustomMenuItem catItem = new CustomMenuItem(categoryContainer);
+        catItem.setHideOnClick(false);
+        ContextMenu catMenu = new ContextMenu(catItem);
+        categoryDropdown.setOnMouseClicked(e -> catMenu.show(categoryDropdown, categoryDropdown.localToScreen(0, categoryDropdown.getHeight()).getX(), categoryDropdown.localToScreen(0, categoryDropdown.getHeight()).getY()));
+
+        // SUBCATEGORY DROPDOWN
+        VBox subcategoryContainer = new VBox();
+        TextField subcategorySearch = new TextField();
+        ListView<CheckBox> subcategoryListView = new ListView<>();
+        CheckBox allSubcategoryCheck = new CheckBox("ALL");
+        allSubcategoryCheck.setOnAction(e -> {
+            boolean selected = allSubcategoryCheck.isSelected();
+            subcategoryCheckBoxes.forEach(cb -> cb.setSelected(selected));
+            updateSelectedSubcategories();
+        });
+        subcategorySearch.setPromptText("Search subcategory...");
+        subcategoryContainer.getChildren().addAll(subcategorySearch, subcategoryListView);
+        CustomMenuItem subcatItem = new CustomMenuItem(subcategoryContainer);
+        subcatItem.setHideOnClick(false);
+        ContextMenu subcatMenu = new ContextMenu(subcatItem);
+        subcategoryDropdown.setOnMouseClicked(e -> subcatMenu.show(subcategoryDropdown, subcategoryDropdown.localToScreen(0, subcategoryDropdown.getHeight()).getX(), subcategoryDropdown.localToScreen(0, subcategoryDropdown.getHeight()).getY()));
+
+        selectedCategories.addListener((ListChangeListener<String>) change -> {
+            selectedSubcategories.clear();
+            subcategoryCheckBoxes.clear();
+            subcategoryListView.getItems().clear();
+            subcategoryListView.getItems().add(allSubcategoryCheck);
+            Set<String> allSubcats = new HashSet<>();
+            for (String cat : selectedCategories) {
+                allSubcats.addAll(categorySubcategoryMap.getOrDefault(cat, Collections.emptyList()));
+            }
+            for (String subcat : allSubcats) {
+                CheckBox cb = new CheckBox(subcat);
+                cb.setOnAction(e -> {
+                    updateSelectedSubcategories();
+                    if (!cb.isSelected()) allSubcategoryCheck.setSelected(false);
+                });
+                subcategoryCheckBoxes.add(cb);
+                subcategoryListView.getItems().add(cb);
+            }
+        });
+
+        subcategorySearch.textProperty().addListener((obs, oldVal, newVal) -> {
+            String filter = newVal.toLowerCase();
+            List<CheckBox> filtered = subcategoryCheckBoxes.stream().filter(cb -> cb.getText().toLowerCase().contains(filter)).collect(Collectors.toList());
+            subcategoryListView.getItems().setAll(filtered);
+            subcategoryListView.getItems().add(0, allSubcategoryCheck);
         });
     }
+
+    private void updateSelectedCategories() {
+        selectedCategories.clear();
+        for (CheckBox cb : categoryCheckBoxes) {
+            if (cb.isSelected()) selectedCategories.add(cb.getText());
+        }
+        categoryDropdown.setPromptText(selectedCategories.isEmpty() ? "Select Categories" : String.join(", ", selectedCategories));
+        categoryDropdown.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(selectedCategories.isEmpty() ? "Select Categories" : String.join(", ", selectedCategories));
+            }
+        });
+        loadInitialProducts();
+    }
+
+
+    private void updateSelectedSubcategories() {
+        selectedSubcategories.clear();
+        for (CheckBox cb : subcategoryCheckBoxes) {
+            if (cb.isSelected()) selectedSubcategories.add(cb.getText());
+        }
+        subcategoryDropdown.setPromptText(selectedSubcategories.isEmpty() ? "Select Subcategories" : String.join(", ", selectedSubcategories));
+        subcategoryDropdown.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(selectedSubcategories.isEmpty() ? "Select Subcategories" : String.join(", ", selectedSubcategories));
+            }
+        });
+        loadInitialProducts();
+    }
+
 
     private String buildFilterQuery() {
         StringBuilder sb = new StringBuilder();
         if (!searchField.getText().trim().isEmpty()) sb.append(" AND lower(p.label) LIKE ?");
-        if (categoryDropdown.getValue() != null && !categoryDropdown.getValue().isEmpty()) sb.append(" AND lower(c.category) = ?");
-        if (subcategoryDropdown.getValue() != null && !subcategoryDropdown.getValue().isEmpty()) sb.append(" AND lower(p.subcategory) = ?");
+        if (!selectedCategories.isEmpty()) sb.append(" AND lower(c.category) IN (").append("?,".repeat(selectedCategories.size() - 1)).append("?)");
+        if (!selectedSubcategories.isEmpty()) sb.append(" AND lower(p.subcategory) IN (").append("?,".repeat(selectedSubcategories.size() - 1)).append("?)");
         return sb.toString();
     }
 
     private List<Object> buildFilterParameters() {
         List<Object> params = new ArrayList<>();
         if (!searchField.getText().trim().isEmpty()) params.add("%" + searchField.getText().trim().toLowerCase() + "%");
-        if (categoryDropdown.getValue() != null) params.add(categoryDropdown.getValue().toLowerCase());
-        if (subcategoryDropdown.getValue() != null) params.add(subcategoryDropdown.getValue().toLowerCase());
+        selectedCategories.forEach(c -> params.add(c.toLowerCase()));
+        selectedSubcategories.forEach(sc -> params.add(sc.toLowerCase()));
         return params;
     }
+
 
     private void loadInitialProducts() {
         currentOffset = 0;

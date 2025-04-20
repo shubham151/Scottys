@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controllers.StoreController">
+    <children>
+        <VBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10"
+              AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="10">
+            <children>
+
+                <!-- Input Fields and Control Buttons -->
+                <HBox spacing="10">
+                    <TextField fx:id="tfStoreName" promptText="Enter Store Name" />
+                    <TextField fx:id="tfLocation" promptText="Enter Location" />
+                    <Button fx:id="btnAddStore" text="Add Store" onAction="#addStore" />
+                    <Button fx:id="btnDeleteStore" text="Delete Store" onAction="#deleteSelectedStore" />
+                    <Button text="Update Store" onAction="#updateSelectedStore" />
+
+                </HBox>
+
+                <!-- Store Table -->
+                <TableView fx:id="storeTable" VBox.vgrow="ALWAYS">
+                    <columns>
+
+                        <!-- Store Name Column with Filter -->
+                        <TableColumn fx:id="colStoreName" minWidth="200" text="Store Name">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Store Name" />
+                                    <TextField fx:id="tfStoreFilter" promptText="Filter" />
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
+
+                        <!-- Location Column -->
+                        <TableColumn fx:id="colLocation" minWidth="200" text="Location" />
+
+                    </columns>
+                </TableView>
+
+            </children>
+        </VBox>
+    </children>
+</AnchorPane>

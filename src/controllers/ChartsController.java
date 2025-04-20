@@ -1,6 +1,7 @@
 package controllers;
 
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.chart.*;
@@ -18,6 +19,7 @@ public class ChartsController {
     @FXML private DatePicker fromDatePicker;
     @FXML private DatePicker toDatePicker;
     @FXML private ComboBox<String> categoryDropdown;
+    @FXML private ComboBox<String> subcategoryDropdown;
     @FXML private ComboBox<String> viewByPieChart;
     @FXML private ComboBox<String> viewByLineChart;
     @FXML private PieChart pieChart;
@@ -29,94 +31,120 @@ public class ChartsController {
     private final CategoryService categoryService = new CategoryService();
 
     private final List<CheckBox> categoryCheckBoxes = new ArrayList<>();
+    private final List<CheckBox> subcategoryCheckBoxes = new ArrayList<>();
     private final ObservableList<String> selectedCategories = FXCollections.observableArrayList();
+    private final ObservableList<String> selectedSubcategories = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
         setupCategoryDropdown();
+        setupSubcategoryDropdown();
 
         viewByPieChart.setItems(FXCollections.observableArrayList("Category", "Subcategory"));
         viewByPieChart.setValue("Category");
-        viewByPieChart.valueProperty().addListener((obs, oldVal, newVal) -> applyPieChart());
+        viewByPieChart.valueProperty().addListener((obs, oldVal, newVal) -> applyFilters());
 
         viewByLineChart.setItems(FXCollections.observableArrayList("Category", "Subcategory", "Product"));
         viewByLineChart.setValue("Category");
-        viewByLineChart.valueProperty().addListener((obs, oldVal, newVal) -> applyLineChart());
+        viewByLineChart.valueProperty().addListener((obs, oldVal, newVal) -> applyFilters());
     }
 
     private void setupCategoryDropdown() {
-        List<String> categories = categoryService.getAllCategories()
-                .stream()
-                .map(cat -> cat.getCategory() + " - " + cat.getSubcategory())
+        List<String> categories = categoryService.getAllCategories().stream()
+                .map(Category::getCategory)
+                .distinct()
+                .sorted()
                 .collect(Collectors.toList());
 
-        categoryDropdown.setPromptText("Select Categories");
+        setupMultiSelectDropdown(categoryDropdown, categories, categoryCheckBoxes, selectedCategories, "Categories");
 
-        VBox categoryContainer = new VBox();
-        TextField searchField = new TextField();
-        searchField.setPromptText("Search category...");
-        ListView<CheckBox> categoryListView = new ListView<>();
-        categoryCheckBoxes.clear();
-
-        CheckBox allCheckBox = new CheckBox("ALL");
-        allCheckBox.setSelected(false);
-        allCheckBox.setOnAction(event -> {
-            boolean isSelected = allCheckBox.isSelected();
-            for (CheckBox cb : categoryCheckBoxes) {
-                cb.setSelected(isSelected);
-            }
-            updateSelectedCategories();
+        selectedCategories.addListener((ListChangeListener<String>) change -> {
+            updateSubcategoryOptions();
+            applyFilters();
         });
-        categoryListView.getItems().add(allCheckBox);
+    }
 
-        for (String cat : categories) {
-            CheckBox checkBox = new CheckBox(cat);
-            checkBox.setSelected(false);
-            checkBox.setOnAction(event -> {
-                updateSelectedCategories();
-                if (!checkBox.isSelected()) {
-                    allCheckBox.setSelected(false);
-                }
+    private void setupSubcategoryDropdown() {
+        updateSubcategoryOptions();
+
+        selectedSubcategories.addListener((ListChangeListener<String>) change -> applyFilters());
+    }
+
+    private void updateSubcategoryOptions() {
+        List<String> subcategories = categoryService.getAllCategories().stream()
+                .filter(cat -> selectedCategories.contains(cat.getCategory()))
+                .map(Category::getSubcategory)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        setupMultiSelectDropdown(subcategoryDropdown, subcategories, subcategoryCheckBoxes, selectedSubcategories, "Subcategories");
+    }
+
+    private void setupMultiSelectDropdown(ComboBox<String> dropdown, List<String> options, List<CheckBox> checkboxes,
+                                          ObservableList<String> selectedList, String labelText) {
+        dropdown.setPromptText("Select " + labelText);
+        dropdown.setEditable(false);
+        dropdown.setVisibleRowCount(1);
+
+        VBox container = new VBox();
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search " + labelText.toLowerCase());
+
+        ListView<CheckBox> listView = new ListView<>();
+        checkboxes.clear();
+
+        CheckBox allBox = new CheckBox("ALL");
+        allBox.setOnAction(e -> {
+            boolean selected = allBox.isSelected();
+            checkboxes.forEach(cb -> cb.setSelected(selected));
+            updateSelectedList(checkboxes, selectedList, dropdown);
+        });
+        listView.getItems().add(allBox);
+
+        for (String option : options) {
+            CheckBox cb = new CheckBox(option);
+            cb.setOnAction(e -> {
+                updateSelectedList(checkboxes, selectedList, dropdown);
+                if (!cb.isSelected()) allBox.setSelected(false);
             });
-            categoryCheckBoxes.add(checkBox);
-            categoryListView.getItems().add(checkBox);
+            checkboxes.add(cb);
+            listView.getItems().add(cb);
         }
 
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            String filter = newVal.toLowerCase();
-            List<CheckBox> filtered = categoryCheckBoxes.stream()
-                    .filter(cb -> cb.getText().toLowerCase().contains(filter))
+            String term = newVal.toLowerCase();
+            List<CheckBox> filtered = checkboxes.stream()
+                    .filter(cb -> cb.getText().toLowerCase().contains(term))
                     .collect(Collectors.toList());
-            categoryListView.getItems().setAll(filtered);
-            categoryListView.getItems().add(0, allCheckBox);
+            listView.getItems().setAll(allBox);
+            listView.getItems().addAll(filtered);
         });
 
-        categoryContainer.getChildren().addAll(searchField, categoryListView);
-        CustomMenuItem customMenuItem = new CustomMenuItem(categoryContainer);
-        customMenuItem.setHideOnClick(false);
-        ContextMenu contextMenu = new ContextMenu(customMenuItem);
-        categoryDropdown.setOnMouseClicked(event -> {
-            contextMenu.show(categoryDropdown,
-                    categoryDropdown.localToScreen(0, categoryDropdown.getHeight()).getX(),
-                    categoryDropdown.localToScreen(0, categoryDropdown.getHeight()).getY());
+        container.getChildren().addAll(searchField, listView);
+        CustomMenuItem menuItem = new CustomMenuItem(container);
+        menuItem.setHideOnClick(false);
+
+        ContextMenu contextMenu = new ContextMenu(menuItem);
+        dropdown.setOnMouseClicked(e -> {
+            contextMenu.show(dropdown,
+                    dropdown.localToScreen(0, dropdown.getHeight()).getX(),
+                    dropdown.localToScreen(0, dropdown.getHeight()).getY());
         });
-        categoryDropdown.setButtonCell(new ListCell<>() {
+
+        dropdown.setButtonCell(new ListCell<>() {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                setText(selectedCategories.isEmpty() ? "Select Categories" : selectedCategories.toString());
+                setText(selectedList.isEmpty() ? "Select " + labelText : String.join(", ", selectedList));
             }
         });
     }
 
-    private void updateSelectedCategories() {
-        selectedCategories.clear();
-        for (CheckBox cb : categoryCheckBoxes) {
-            if (cb.isSelected()) {
-                selectedCategories.add(cb.getText());
-            }
-        }
-        categoryDropdown.setPromptText(selectedCategories.isEmpty() ? "Select Categories" : selectedCategories.toString());
+    private void updateSelectedList(List<CheckBox> checkboxes, ObservableList<String> list, ComboBox<String> dropdown) {
+        list.clear();
+        checkboxes.stream().filter(CheckBox::isSelected).forEach(cb -> list.add(cb.getText()));
+        dropdown.setPromptText(list.isEmpty() ? dropdown.getId() : String.join(", ", list));
     }
 
     @FXML
@@ -129,55 +157,59 @@ public class ChartsController {
         LocalDate fromDate = fromDatePicker.getValue();
         LocalDate toDate = toDatePicker.getValue();
 
-        if (fromDate == null || toDate == null || selectedCategories.isEmpty()) return;
+        if (fromDate == null || toDate == null) return;
+
+        String viewBy = viewByPieChart.getValue();
+        Map<String, Integer> data;
+
+        if ("Subcategory".equals(viewBy)) {
+            if (selectedSubcategories.isEmpty() || selectedCategories.isEmpty()) return;
+            List<String> selectedPairs = new ArrayList<>();
+            for (String cat : selectedCategories) {
+                for (String sub : selectedSubcategories) {
+                    selectedPairs.add(cat + " - " + sub);
+                }
+            }
+            data = analyticsService.getQuantityBySubcategory(fromDate, toDate, selectedPairs);
+        } else {
+            if (selectedCategories.isEmpty()) return;
+            data = analyticsService.getQuantityByCategory(fromDate, toDate, selectedCategories);
+        }
 
         pieChart.getData().clear();
-        String pieViewBy = viewByPieChart.getValue();
-
-        Map<String, Integer> quantityMap = "Subcategory".equals(pieViewBy)
-                ? analyticsService.getQuantityBySubcategory(fromDate, toDate, selectedCategories)
-                : analyticsService.getQuantityByCategory(fromDate, toDate, selectedCategories);
-
-        renderPieChart(quantityMap);
+        data.forEach((key, value) -> pieChart.getData().add(new PieChart.Data(key, value)));
     }
+
 
     private void applyLineChart() {
         LocalDate fromDate = fromDatePicker.getValue();
         LocalDate toDate = toDatePicker.getValue();
 
-        if (fromDate == null || toDate == null || selectedCategories.isEmpty()) return;
+        if (fromDate == null || toDate == null) return;
 
+        String viewBy = viewByLineChart.getValue();
         lineChart.getData().clear();
-        String lineViewBy = viewByLineChart.getValue();
-        Map<String, Map<String, Integer>> combinedTrend = new HashMap<>();
 
-        for (String selected : selectedCategories) {
-            String[] parts = selected.split(" - ", 2);
-            String category = parts[0];
-            String subcategory = parts.length > 1 ? parts[1] : "";
-
-            Map<String, Map<String, Integer>> trendData;
-
-            if ("Category".equals(lineViewBy)) {
-                trendData = analyticsService.getSalesTrendByCategory(fromDate, toDate, category);
-            } else if ("Subcategory".equals(lineViewBy)) {
-                trendData = analyticsService.getSalesTrendBySubcategory(fromDate, toDate, subcategory);
-            } else {
-                trendData = analyticsService.getSalesTrendByLabel(fromDate, toDate, category);
+        if ("Category".equals(viewBy)) {
+            for (String cat : selectedCategories) {
+                Map<String, Map<String, Integer>> trends = analyticsService.getSalesTrendByCategory(fromDate, toDate, cat);
+                plotLineChart(trends);
             }
-
-            for (Map.Entry<String, Map<String, Integer>> entry : trendData.entrySet()) {
-                String seriesName = entry.getKey();
-                Map<String, Integer> dataPoints = entry.getValue();
-                combinedTrend.computeIfAbsent(seriesName, k -> new HashMap<>());
-                Map<String, Integer> combinedSeries = combinedTrend.get(seriesName);
-                for (Map.Entry<String, Integer> dp : dataPoints.entrySet()) {
-                    combinedSeries.merge(dp.getKey(), dp.getValue(), Integer::sum);
-                }
+        } else if ("Subcategory".equals(viewBy)) {
+            for (String sub : selectedSubcategories) {
+                Map<String, Map<String, Integer>> trends = analyticsService.getSalesTrendBySubcategory(fromDate, toDate, sub);
+                plotLineChart(trends);
+            }
+        } else {
+            for (String cat : selectedCategories) {
+                Map<String, Map<String, Integer>> trends = analyticsService.getSalesTrendByLabel(fromDate, toDate, cat);
+                plotLineChart(trends);
             }
         }
+    }
 
-        for (Map.Entry<String, Map<String, Integer>> entry : combinedTrend.entrySet()) {
+    private void plotLineChart(Map<String, Map<String, Integer>> data) {
+        for (Map.Entry<String, Map<String, Integer>> entry : data.entrySet()) {
             XYChart.Series<String, Number> series = new XYChart.Series<>();
             series.setName(entry.getKey());
             entry.getValue().entrySet().stream()
@@ -185,19 +217,6 @@ public class ChartsController {
                     .forEach(e -> series.getData().add(new XYChart.Data<>(e.getKey(), e.getValue())));
             lineChart.getData().add(series);
         }
-    }
-
-    private void renderPieChart(Map<String, Integer> quantityMap) {
-        int total = quantityMap.values().stream().mapToInt(Integer::intValue).sum();
-        ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList();
-
-        for (Map.Entry<String, Integer> entry : quantityMap.entrySet()) {
-            double percent = total > 0 ? (entry.getValue() * 100.0) / total : 0;
-            String label = entry.getKey() + " (" + String.format("%.1f", percent) + "%)";
-            pieData.add(new PieChart.Data(label, entry.getValue()));
-        }
-
-        pieChart.setData(pieData);
     }
 
     private void showAlert(String title, String message) {
