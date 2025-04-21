@@ -1,5 +1,6 @@
 package controllers;
 
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -37,6 +38,8 @@ public class AnalyticsController {
     @FXML private TableColumn<AnalyticsData, Double> colTotalCost;
     @FXML private TableColumn<AnalyticsData, Double> colTotalRetail;
     @FXML private TableColumn<AnalyticsData, Integer> colQuantity;
+    @FXML private TableColumn<AnalyticsData, Double> colMargin;
+
 
     private final AnalyticsService analyticsService = new AnalyticsService();
     private final CategoryService categoryService = new CategoryService();
@@ -62,6 +65,19 @@ public class AnalyticsController {
         colTotalCost.setCellValueFactory(data -> data.getValue().totalCostProperty().asObject());
         colTotalRetail.setCellValueFactory(data -> data.getValue().totalRetailProperty().asObject());
         colQuantity.setCellValueFactory(data -> data.getValue().quantityProperty().asObject());
+        colMargin.setCellValueFactory(data -> {
+            double margin = data.getValue().getRetail() - data.getValue().getCost();
+            double rounded = Math.round(margin * 100.0) / 100.0;
+            return new SimpleDoubleProperty(rounded).asObject();
+        });
+
+        colMargin.setCellValueFactory(data -> {
+            double margin = data.getValue().getTotalRetail() - data.getValue().getTotalCost();
+            double rounded = Math.round(margin * 100.0) / 100.0;
+            return new SimpleDoubleProperty(rounded).asObject();
+        });
+
+
     }
 
     private void setupCategoryDropdown() {

@@ -100,6 +100,17 @@
                                 </VBox>
                             </graphic>
                         </TableColumn>
+                        <TableColumn fx:id="colMargin" minWidth="150">
+                            <graphic>
+                                <VBox spacing="2">
+                                    <Label text="Total Margin"/>
+                                    <HBox spacing="2">
+                                        <ComboBox fx:id="cbTotalMarginComparator" promptText="Op"/>
+                                        <TextField fx:id="tfTotalMarginFilter" promptText="Value"/>
+                                    </HBox>
+                                </VBox>
+                            </graphic>
+                        </TableColumn>
                         <TableColumn fx:id="colQuantity" minWidth="150">
                             <graphic>
                                 <VBox spacing="2">
